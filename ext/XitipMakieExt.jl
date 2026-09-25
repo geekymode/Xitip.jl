@@ -40,12 +40,23 @@ end
 """Lay a decomposition tree out and draw it."""
 function draw_tree(t::DecompositionTree; detail::Bool=false,
                    size=nothing, title::AbstractString=t.title,
-                   fontsize::Real=14, wrap::Int=34)
+                   fontsize::Real=14, wrap::Union{Int,Nothing}=nothing,
+                   maxwidth::Int=640)
     g = SimpleDiGraph(length(t.nodes))
     for (i, node) in enumerate(t.nodes), c in node.children
         add_edge!(g, i, c)
     end
-    labels = [label_of(node, detail, wrap) for node in t.nodes]
+    depth = maximum(node_depth(t, i) for i in eachindex(t.nodes)) + 1
+    # Keep the figure no wider than a page: a figure that has to be scaled
+    # down to fit takes its labels with it, and the text ends up unreadable.
+    # Wrapping the labels harder trades width for height, which costs nothing.
+    labels, room_left, room_right = String[], 0, 0
+    for width in (wrap === nothing ? (34, 30, 26, 22, 18, 14) : (wrap,))
+        labels = [label_of(node, detail, width) for node in t.nodes]
+        room_left, room_right = label_room(t, labels)
+        estimate = 0.62 * fontsize * (room_left + room_right) + 40 * depth
+        (estimate <= maxwidth || width == 14) && break
+    end
     # a term hangs off to the left of its parent, so its label reads outwards
     # from there; everything else keeps its label on the right
     outwards = falses(length(t.nodes))
@@ -59,19 +70,12 @@ function draw_tree(t::DecompositionTree; detail::Bool=false,
     # is sized from the widest line and the tallest label, after wrapping
     widest = maximum(maximum(length, split(l, "\n")) for l in labels)
     tallest = maximum(count(==('\n'), l) for l in labels) + 1
-    depth = maximum(node_depth(t, i) for i in eachindex(t.nodes)) + 1
     legend = length(unique(node.kind for node in t.nodes
                            if node.kind !== :expression)) > 1
-    # how much room the labels on each side need, in characters
-    linewidth(l) = maximum(length, split(l, "\n"))
-    room_left = maximum((linewidth(labels[i]) for i in eachindex(labels)
-                         if outwards[i]); init=0)
-    room_right = maximum((linewidth(labels[i]) for i in eachindex(labels)
-                          if !outwards[i]); init=0)
     figsize = something(size,
-                        (max(640, round(Int, 0.62 * fontsize *
-                                             (room_left + room_right) +
-                                             40 * depth)),
+                        (clamp(round(Int, 0.62 * fontsize *
+                                          (room_left + room_right) +
+                                          40 * depth), 640, maxwidth),
                          max(260, depth * (58 + 20 * tallest)) +
                          (legend ? 40 : 0)))
 
@@ -119,6 +123,20 @@ function draw_tree(t::DecompositionTree; detail::Bool=false,
                            0.04 + scale * px_right / figsize[1])
     ax.yautolimitmargin = (0.15, 0.15)
     return fig
+end
+
+"""How wide the labels on each side of the tree are, in characters."""
+function label_room(t::DecompositionTree, labels)
+    outwards = falses(length(t.nodes))
+    for node in t.nodes, (k, c) in enumerate(node.children)
+        outwards[c] = k == 1 && length(node.children) > 1
+    end
+    linewidth(l) = maximum(length, split(l, "\n"))
+    left = maximum((linewidth(labels[i]) for i in eachindex(labels)
+                    if outwards[i]); init=0)
+    right = maximum((linewidth(labels[i]) for i in eachindex(labels)
+                     if !outwards[i]); init=0)
+    return left, right
 end
 
 function node_depth(t::DecompositionTree, target::Int)
@@ -236,14 +254,15 @@ Xitip.plot_constraints(lines::AbstractVector{<:AbstractString}; kw...) =
 
 """Draw the entropy values that defeat a statement."""
 function draw_counterexample(c::Counterexample; size=nothing,
-                             title::AbstractString="", fontsize::Real=13)
+                             title::AbstractString="", fontsize::Real=14)
     table = entropy_table(c)
     values = Float64[Float64(v) for (_, v) in table]
     labels = [k for (k, _) in table]
     n = length(c.var_names)
     sizes = [count_ones(S) for S in sort(1:(1 << n) - 1;
                                          by = S -> (count_ones(S), S))]
-    figsize = something(size, (max(560, 46 * length(values)), 360))
+    # the same width as the trees, so the text reads at the same size
+    figsize = something(size, (clamp(42 * length(values), 560, 640), 360))
     fig = Figure(; size=figsize)
     head = isempty(title) ?
            "entropies that satisfy every inequality but give " *
