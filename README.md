@@ -275,6 +275,11 @@ calls. For comparison, the exact simplex method (`--simplex`) needs 20 s
 for the 8-variable case in the right column, which is why it is only the
 fallback.
 
+A statement that cannot be proven takes longer when constraints are
+involved, because the counterexample then has to be certified by an exact
+projection rather than by rounding: about 12 s for an 8-variable problem
+with a handful of constraints.
+
 ## Limitations
 
 - **Non-Shannon-type inequalities.** A negative answer means "not provable
@@ -295,7 +300,7 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5345 checks covering the parser, known Shannon and non-Shannon results,
+5347 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random
