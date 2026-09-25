@@ -120,9 +120,42 @@ counter = only(explain("H(X) <= H(Y)").certificates)
 counter.entropies        # indexed by subset bitmask: 1 = X, 2 = Y, 3 = X,Y
 ```
 
-`direction = true` marks the degenerate case where the values are not a point
-but a direction along which the expression decreases without bound; this is
-what happens for a statement with no constant term, which can be scaled freely.
+### Reading the numbers
+
+The values are **entropies in bits**, not probabilities: they are bounded by the
+logarithm of the alphabet size, not by 1. `H(X) = 6` describes a variable with
+up to 64 equally likely values, and `H(X,Y,Z) = 13` a triple with up to 8192.
+
+`direction = true` marks the case where the values are not a point but a
+direction: the statement has no constant term, so every positive multiple of
+the values fails in the same way, and the small integers printed are just the
+most readable representative. Dividing by the largest of them is equally
+valid:
+
+```@example proofs
+table = entropy_table(explain("I(X;Y|Z) <= I(X;Y)"))
+peak = maximum(last, table)
+[k => Float64(v // peak) for (k, v) in table]
+```
+
+What matters is the relations between them. For the table above,
+
+```math
+I(X;Y) = H(X) + H(Y) - H(X,Y), \qquad
+I(X;Y \mid Z) = H(X,Z) + H(Y,Z) - H(Z) - H(X,Y,Z),
+```
+
+and the second is the larger, which is why `I(X;Y|Z) <= I(X;Y)` fails.
+Conditioning really can raise mutual information, and it does so in an
+everyday distribution: let `X` and `Y` be independent fair bits and `Z = X`
+xor `Y`. Then
+
+```@example proofs
+prove("I(X;Y|Z) <= I(X;Y)", "I(X;Y) = 0", "H(Z|X,Y) = 0", "H(X|Y,Z) = 0")
+```
+
+is still not provable, because those constraints describe exactly that
+distribution, where `I(X;Y) = 0` while `I(X;Y|Z) = 1` bit.
 
 !!! note "A counterexample is a polymatroid, not necessarily a distribution"
     Beyond three variables, not every vector satisfying the basic inequalities

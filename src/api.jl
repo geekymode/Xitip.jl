@@ -135,6 +135,11 @@ function Base.show(io::IO, ::MIME"text/plain", c::Counterexample)
     end
     println(io, "  which satisfy every elemental inequality and constraint, ",
             "but give ", format(c.value), " < 0.")
+    # the numbers are entropies in bits, not probabilities, and a direction
+    # may be scaled at will, so neither is bounded by 1
+    c.direction && println(io, "  Any positive multiple of these values ",
+                           "fails in the same way.")
+    return
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::Result)

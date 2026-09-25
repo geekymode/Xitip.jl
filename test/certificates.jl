@@ -92,6 +92,9 @@ end
         @test value(P.inquiries[1].coefs) < 0
         @test c.value == value(P.inquiries[1].coefs)
         @test occursin("H(", sprint(show, c))
+        # a direction may be scaled at will, and the output says so
+        text = sprint(show, c)
+        @test occursin("Any positive multiple", text) == c.direction
         return c
     end
     check(["H(X) <= H(Y)"])

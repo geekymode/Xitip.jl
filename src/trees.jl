@@ -285,6 +285,13 @@ end
 The entropy values of a counterexample, as `"H(X,Y)" => value` pairs
 ordered by how many variables each subset holds.
 
+The values are entropies in bits, so they are bounded by the logarithm of
+the alphabet size rather than by 1 — `H(X) = 6` is a variable with up to 64
+equally likely values. When the counterexample is a direction
+(`c.direction`), the scale is free as well: every positive multiple of the
+values fails in the same way, and small integers are simply the most
+readable representative.
+
 ```jldoctest
 julia> entropy_table(only(explain("H(X) <= H(Y)").certificates))
 3-element Vector{Pair{String, Rational{BigInt}}}:
