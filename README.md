@@ -59,30 +59,24 @@ Proof of  E >= 0  where  E = H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
 
   step 1:  subtract  1 * ( I(X;Y|Z) >= 0 )
                      = -H(Z) + H(X,Z) + H(Y,Z) - H(X,Y,Z)
-           leaving   H(Z) + H(X,Y) - H(X,Y,Z)
+           leaving   H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)
 
   step 2:  subtract  1 * ( I(X;Z|Y) >= 0 )
                      = -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)
-           leaving   H(Y) + H(Z) - H(Y,Z)
+           leaving   H(Y) + H(Z) - H(Y,Z)  =  I(Y;Z)
 
   step 3:  subtract  1 * ( I(Y;Z) >= 0 )
                      = H(Y) + H(Z) - H(Y,Z)
            leaving   0
 
   Nothing is left, so E is a sum of non-negative terms: E >= 0.
-
-julia> explain("H(X) <= H(Y)")
-NOT PROVABLE (false or non-Shannon-type)
-No proof of  -H(X) + H(Y) >= 0; it fails for the direction:
-    H(X) = 5
-    H(Y) = 4
-    H(X,Y) = 7
-  which satisfy every elemental inequality and constraint, but give -1 < 0.
 ```
 
 Each step subtracts one non-negative quantity and shows what remains, so a
-derivation can be checked by hand line by line. Constraints are named by
-their own text, e.g. `constraint 1: X/Y/Z`.
+derivation can be checked by hand line by line. Where a remainder (or the
+statement itself) is a single information quantity, it is named: the raw
+entropy sum is followed by `= I(X,Y;Z)`. Constraints are named by their own
+text, e.g. `constraint 1: X/Y/Z`.
 
 For a paper, `latex` writes the same proof as an `align*` block (long
 expressions are wrapped, and counterexamples become a table of entropy
@@ -248,7 +242,7 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5290 checks covering the parser, known Shannon and non-Shannon results,
+5319 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random

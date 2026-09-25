@@ -14,6 +14,7 @@ struct ProofStep
     name::String            # "I(X;Y|Z) >= 0" or "constraint 1"
     expansion::String       # the same quantity written with entropies
     remainder::String       # what is left of the expression after this step
+    remainder_name::String  # the remainder as one quantity, if it is one
 end
 
 """
@@ -28,10 +29,11 @@ quantity at a time; print it with [`print_proof`](@ref).
 """
 struct Proof
     expression::String
+    expression_name::String             # the expression as one quantity, if it is one
     terms::Vector{Pair{Coef,String}}    # multiplier => inequality used
     constant::Coef                      # left over non-negative constant
     steps::Vector{ProofStep}
-    latex_expression::String            # the same, as LaTeX
+    latex_expression::String            # the expression, as LaTeX
     latex_terms::Vector{String}
 end
 
@@ -151,7 +153,8 @@ Proof of  E >= 0  where  E = H(Y) - H(Z) - H(X,Y) + H(X,Z)
 print_proof(x) = print_proof(stdout, x)
 
 function print_proof(io::IO, p::Proof)
-    println(io, "Proof of  E >= 0  where  E = ", chop_relation(p.expression))
+    println(io, "Proof of  E >= 0  where  E = ", chop_relation(p.expression),
+            isempty(p.expression_name) ? "" : "  =  " * p.expression_name)
     if isempty(p.steps)
         println(io, "\n  E is the constant ", format(p.constant), " >= 0.")
         return
@@ -162,7 +165,8 @@ function print_proof(io::IO, p::Proof)
                 " * ( ", s.name, " )")
         occursin(s.expansion, s.name) ||
             println(io, " "^21, "= ", s.expansion)
-        println(io, "           leaving   ", s.remainder)
+        println(io, "           leaving   ", s.remainder,
+                isempty(s.remainder_name) ? "" : "  =  " * s.remainder_name)
     end
     println(io)
     if iszero(p.constant)
@@ -216,10 +220,12 @@ function make_proof(y, gens, r::LinRel, names, sources)
         name = describe(g, names, sources)
         push!(terms, c => name)
         push!(steps, ProofStep(c, name, format(quantity, names),
-                               format(remainder, names)))
+                               format(remainder, names),
+                               something(name_quantity(remainder, names), "")))
     end
-    return Proof(format(r, names), terms, y[end], steps,
-                 latex(r.coefs, names),
+    return Proof(format(r, names),
+                 something(name_quantity(r.coefs, names), ""),
+                 terms, y[end], steps, latex(r.coefs, names),
                  [latex(gens[j], names, sources) for j in used])
 end
 
