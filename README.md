@@ -253,10 +253,10 @@ Where a TeX installation is available, the generated LaTeX is compiled with
 
 ## Credits
 
-Xitip was written by *Rethnakaran Pulikkoonattu*, *Etienne Perron* and
-*Suhas Diggavi*; it builds on ITIP by *Raymond W. Yeung* and *Ying-On Yan*.
-The C++ fork Citip, whose grammar this package follows, is by *Thomas
-Gläßle*.
+Xitip was written by *Rethna Pulikkoonattu*, *Etienne Perron* and *Suhas
+Diggavi*; it builds on ITIP by *Raymond W. Yeung* and *Ying-On Yan*. The
+C++ fork Citip, and the updated modular c++ oxitip developed by *Thomas
+Gläßle* and *Nivedita Rethnakar* et. al.
 
 ## License
 
