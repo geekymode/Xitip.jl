@@ -144,6 +144,7 @@ function parse_expr!(p::Parser)
 end
 
 const RELATIONS = Dict("=" => :eq, "<=" => :le, ">=" => :ge)
+const RELATION_TEXT = Dict(:eq => "=", :le => "<=", :ge => ">=")
 
 function parse_relation!(p::Parser)
     left = parse_expr!(p)

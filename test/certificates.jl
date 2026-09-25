@@ -95,6 +95,27 @@ end
         # a direction may be scaled at will, and the output says so
         text = sprint(show, c)
         @test occursin("Any positive multiple", text) == c.direction
+        # the statement's own quantities, valued there, must add up to the
+        # two sides of the statement and explain the verdict
+        if !isempty(c.terms)
+            left = Xitip.side_total(c, :left)
+            right = Xitip.side_total(c, :right)
+            @test c.relation in ("<=", ">=", "=")
+            fails = c.relation == "<=" ? left > right :
+                    c.relation == ">=" ? left < right : left != right
+            @test fails
+            @test occursin("There the statement reads", text)
+            @test occursin("so it asks for", text)
+            for t in c.terms
+                @test t.side in (:left, :right)
+                # a quantity is shown as it was written; a constant has none
+                isempty(t.quantity) || @test occursin(t.quantity, c.statement)
+            end
+            # a constant counts as itself at a point; along a direction it
+            # does not scale, so it does not count at all
+            consts = [t for t in c.terms if isempty(t.quantity)]
+            @test all(t -> t.value == (c.direction ? 0 : 1), consts)
+        end
         return c
     end
     check(["H(X) <= H(Y)"])

@@ -256,7 +256,13 @@ Xitip.plot_constraints(lines::AbstractString...; kw...) =
 Xitip.plot_constraints(lines::AbstractVector{<:AbstractString}; kw...) =
     draw_constraints(constraint_graph(lines); kw...)
 
-"""Draw the entropy values that defeat a statement."""
+const SIDE_COLOUR = Dict(:left => RGBf(0.63, 0.35, 0.12),
+                         :right => RGBf(0.20, 0.29, 0.44))
+
+"""
+Draw the entropy values that defeat a statement, and above them what the
+statement's own quantities come to there, which is what connects the two.
+"""
 function draw_counterexample(c::Counterexample; size=nothing,
                              title::AbstractString="", fontsize::Real=14)
     table = entropy_table(c)
@@ -265,17 +271,53 @@ function draw_counterexample(c::Counterexample; size=nothing,
     n = length(c.var_names)
     sizes = [count_ones(S) for S in sort(1:(1 << n) - 1;
                                          by = S -> (count_ones(S), S))]
-    # the same width as the trees, so the text reads at the same size
-    figsize = something(size, (clamp(42 * length(values), 560, 640), 360))
+    terms = c.terms
+    figsize = something(size, (clamp(42 * length(values), 560, 640),
+                              isempty(terms) ? 360 : 560))
     fig = Figure(; size=figsize)
-    head = isempty(title) ?
-           "entropies that satisfy every inequality but give " *
-           "$(Xitip.format(c.value)) < 0" : String(title)
-    ax = Axis(fig[1, 1]; title=head, titlesize=fontsize + 1,
+
+    row = 1
+    if !isempty(terms)
+        # what each side of the statement comes to at these entropies
+        left = Float64(Xitip.side_total(c, :left))
+        right = Float64(Xitip.side_total(c, :right))
+        head = isempty(title) ?
+               "$(c.statement) asks for $(Xitip.format(Xitip.side_total(c, :left)))" *
+               " $(c.relation) $(Xitip.format(Xitip.side_total(c, :right)))" :
+               String(title)
+        ax = Axis(fig[row, 1]; title=head, titlesize=fontsize + 1,
+                  ylabel="value here",
+                  xticks=(1:length(terms), [Xitip.term_text(t) for t in terms]),
+                  xticklabelsize=fontsize - 1, yticklabelsize=fontsize - 1,
+                  xticklabelrotation=length(terms) > 4 ? pi/6 : 0.0)
+        heights = [Float64(t.coefficient * t.value) for t in terms]
+        barplot!(ax, 1:length(terms), heights;
+                 width = 0.6,
+                 color = [SIDE_COLOUR[t.side] for t in terms],
+                 strokewidth = 0.5, strokecolor = RGBf(0.35, 0.37, 0.42))
+        # the totals each side adds up to, which is where the statement fails
+        hlines!(ax, [left]; color=SIDE_COLOUR[:left], linestyle=:dash,
+                linewidth=1.5, label="left side = $(Xitip.format(Xitip.side_total(c, :left)))")
+        hlines!(ax, [right]; color=SIDE_COLOUR[:right], linestyle=:dash,
+                linewidth=1.5, label="right side = $(Xitip.format(Xitip.side_total(c, :right)))")
+        # wherever the bars leave room
+        tall = maximum(heights; init=1.0)
+        axislegend(ax; position=last(heights) < 0.5 * tall ? :rt : :lt,
+                   framevisible=false, labelsize=fontsize - 2)
+        hidespines!(ax, :t, :r)
+        row += 1
+    end
+
+    head = isempty(terms) ?
+           (isempty(title) ? "entropies that satisfy every inequality but give " *
+            "$(Xitip.format(c.value)) < 0" : String(title)) :
+           "the entropies behind those values"
+    ax = Axis(fig[row, 1]; title=head, titlesize=fontsize + 1,
               ylabel="entropy", xticks=(1:length(values), labels),
               xticklabelrotation=length(values) > 7 ? pi/4 : 0.0,
               xticklabelsize=fontsize - 1, yticklabelsize=fontsize - 1)
     barplot!(ax, 1:length(values), values;
+             width = 0.7,
              color = sizes, colormap = :dense, colorrange = (0, maximum(sizes)),
              strokewidth = 0.5, strokecolor = RGBf(0.35, 0.37, 0.42))
     hidespines!(ax, :t, :r)

@@ -56,6 +56,21 @@ struct Proof
 end
 
 """
+    TermValue
+
+One quantity of the statement that was refuted, as it stands at the
+counterexample: `2 I(X;Y|Z)` with `coefficient` 2, `quantity` `"I(X;Y|Z)"`,
+`value` the quantity's own value there, and `side` `:left` or `:right` of
+the relation as it was written.
+"""
+struct TermValue
+    coefficient::Coef
+    quantity::String
+    value::Coef
+    side::Symbol
+end
+
+"""
     Counterexample
 
 Why an information expression could not be proven: entropy values `h`
@@ -74,6 +89,9 @@ struct Counterexample
     value::Coef                         # value of the expression at h (< 0)
     direction::Bool
     latex_expression::String            # the expression, as LaTeX
+    statement::String                   # the statement as it was written
+    terms::Vector{TermValue}            # its quantities, valued at h
+    relation::String                    # "<=", ">=" or "=" as it was written
 end
 
 """A [`Proof`](@ref) or a [`Counterexample`](@ref)."""
@@ -135,12 +153,48 @@ function Base.show(io::IO, ::MIME"text/plain", c::Counterexample)
     end
     println(io, "  which satisfy every elemental inequality and constraint, ",
             "but give ", format(c.value), " < 0.")
+    # what the statement itself reads at those values, which is where the
+    # entropies above connect to the statement that was refuted
+    if !isempty(c.terms)
+        println(io, "  There the statement reads")
+        rows = String[]
+        for side in (:left, :right)
+            terms = [t for t in c.terms if t.side === side]
+            isempty(terms) && continue
+            total = side_total(c, side)
+            sum_text = join((format(t.coefficient * t.value) for t in terms),
+                            " + ")
+            push!(rows, (side === :left ? "left side" : "right side") * "\0" *
+                        join((term_text(t) for t in terms), " + ") * "\0" *
+                        (length(terms) == 1 ? format(total) :
+                         sum_text * "  =  " * format(total)))
+        end
+        cols = [maximum(length(split(r, "\0")[k]) for r in rows) for k in 1:2]
+        for r in rows
+            a, b, c_ = split(r, "\0")
+            println(io, "    ", rpad(a, cols[1]), "  ", rpad(b, cols[2]),
+                    "  =  ", c_)
+        end
+        println(io, "  so it asks for ", format(side_total(c, :left)), " ",
+                c.relation, " ", format(side_total(c, :right)),
+                ", which is false.")
+    end
     # the numbers are entropies in bits, not probabilities, and a direction
     # may be scaled at will, so neither is bounded by 1
     c.direction && println(io, "  Any positive multiple of these values ",
                            "fails in the same way.")
     return
 end
+
+# "2 I(C;D)", "I(A;B)", or just "3" for a constant term
+term_text(t::TermValue) =
+    isempty(t.quantity) ? format(t.coefficient) :
+    (t.coefficient == 1 ? "" : format(t.coefficient) * " ") * t.quantity
+
+"""The value of one side of the statement at the counterexample."""
+side_total(c::Counterexample, side::Symbol) =
+    sum((t.coefficient * t.value for t in c.terms if t.side === side);
+        init=zero(Coef))
 
 function Base.show(io::IO, ::MIME"text/plain", r::Result)
     println(io, r.verdict ? "TRUE" : "NOT PROVABLE (false or non-Shannon-type)")
@@ -292,14 +346,46 @@ end
 # Farkas certificate z = (u, τ) -> Counterexample. The entropies are h = -u,
 # normalized by -τ if that is positive so that the constant term applies
 # unscaled.
-function make_counterexample(z, r::LinRel, names, D)
+function make_counterexample(z, r::LinRel, names, D, statement, text)
     s = -z[D]
     direction = iszero(s)
     h = direction ? -z[1:D-1] : -z[1:D-1] ./ s
-    value = sum((S == 0 ? (direction ? zero(Coef) : c) : c * h[S])
-                for (S, c) in r.coefs; init=zero(Coef))
-    return Counterexample(format(r, names), names, h, value, direction,
-                          latex(r.coefs, names))
+    at(coefs) = sum((S == 0 ? (direction ? zero(Coef) : c) : c * h[S])
+                    for (S, c) in coefs; init=zero(Coef))
+    return Counterexample(format(r, names), names, h, at(r.coefs), direction,
+                          latex(r.coefs, names), text,
+                          term_values(statement, names, at),
+                          statement isa Relation ?
+                          RELATION_TEXT[statement.rel] : "")
+end
+
+"""
+Each quantity of the statement, valued at the counterexample, so that the
+numbers can be read against the statement rather than only against the
+expression with everything moved to one side.
+"""
+function term_values(statement, names, at)
+    values = TermValue[]
+    statement isa Relation || return values
+    index = Dict(v => i for (i, v) in enumerate(names))
+    for (side, terms) in ((:left, statement.left), (:right, statement.right))
+        for term in terms
+            coefs = Dict{Int,Coef}()
+            add_term!(coefs, index, Term(one(Coef), term.quantity), 1)
+            push!(values, TermValue(term.coef,
+                                    quantity_label(term.quantity),
+                                    at(coefs), side))
+        end
+    end
+    return values
+end
+
+"""`H(X,Y|Z)` or `I(X;Y|Z)` as written; a constant term has no quantity."""
+function quantity_label(q::Union{Quantity,Nothing})
+    q === nothing && return ""
+    cond = isempty(q.cond) ? "" : "|" * join(q.cond, ",")
+    length(q.parts) == 1 && return "H(" * join(only(q.parts), ",") * cond * ")"
+    return "I(" * join((join(p, ",") for p in q.parts), ";") * cond * ")"
 end
 
 """
@@ -349,7 +435,8 @@ Proof of  H(X) + H(Y) - H(X,Y) >= 0:
 explain(lines::AbstractString...; kw...) = explain(collect(lines); kw...)
 
 function explain(lines::AbstractVector{<:AbstractString}; method::Symbol=:auto)
-    P = Problem(parse_statements(lines)...)
+    stmts, sources = parse_statements(lines)
+    P = Problem(stmts, sources)
     n = length(P.var_names)
     gens = generators(P)
     D = 1 << n
@@ -363,7 +450,8 @@ function explain(lines::AbstractVector{<:AbstractString}; method::Symbol=:auto)
         if !verdict
             cert === nothing && return Result(false, Certificate[])
             z = simplify_certificate(gens, n, rel.coefs, cert, D)
-            return Result(false, [make_counterexample(z, rel, P.var_names, D)])
+            return Result(false, [make_counterexample(z, rel, P.var_names, D,
+                                                     stmts[1], sources[1])])
         end
         cert === nothing ||
             push!(proofs, make_proof(cert, gens, rel, P.var_names, P.sources))

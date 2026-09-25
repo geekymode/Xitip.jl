@@ -103,16 +103,22 @@ what is drawn.
 
 When a statement cannot be proven, the certificate is a set of entropy values
 that satisfies every elemental inequality and constraint but not the statement.
-[`plot_counterexample`](@ref) draws them, grouped by how many variables each
-subset holds:
+[`plot_counterexample`](@ref) draws what the statement's own quantities come to
+at those values, which is where the verdict comes from, and the entropies
+behind them:
 
 ```@example plots
 plot_counterexample(explain("I(X;Y|Z) <= I(X;Y)"))
 ```
 
-The structure is often the point. For the Ingleton expression the singletons
-all agree, the pairs agree except for one, and the triples agree again — the
-shape of the polymatroid that defeats it:
+The top panel is the statement, term by term: each bar is one quantity as
+written, coloured by which side of the relation it sits on, and the dashed
+lines are what the two sides add up to. The statement asks for the left line
+to sit below the right one, and it does not.
+
+The structure of the entropies is often the point too. For the Ingleton
+expression the singletons all agree, the pairs agree except for one, and the
+triples agree again — the shape of the polymatroid that defeats it:
 
 ```@example plots
 plot_counterexample(explain("I(A;B) <= I(A;B|C) + I(A;B|D) + I(C;D)"))
