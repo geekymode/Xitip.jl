@@ -123,13 +123,7 @@ prove([statement; constraints])</code></pre><pre class="documenter-example-outpu
     I(A;Y|C)          =  -H(C) + H(A,C) + H(C,Y) - H(A,C,Y)                                  &gt;= 0
     I(C;Y)            =  H(C) + H(Y) - H(C,Y)                                                &gt;= 0
 
-  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>Only four of the fourteen constraints are needed — numbers 2, 7, 11 and 13, the ones appearing as <code>C1</code> to <code>C4</code> above:</p><pre><code class="language-julia hljs">needed = [constraints[2], constraints[7], constraints[11], constraints[13]]
-prove([statement; needed])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>None of those four is redundant: dropping any one of them leaves a statement that no longer follows from the basic inequalities. (Each of those queries takes about 12 seconds, so they are not run while this page is built.)</p><pre><code class="language-julia hljs">julia&gt; [prove([statement; needed[setdiff(1:4, i)]]) for i in 1:4]
-4-element Vector{Bool}:
- 0
- 0
- 0
- 0</code></pre><p>and as LaTeX:</p><pre><code class="language-julia hljs">latex(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
+  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>Only four of the fourteen constraints are needed — numbers 2, 7, 11 and 13, the ones appearing as <code>C1</code> to <code>C4</code> above:</p><pre><code class="language-julia hljs">prove([statement, constraints[2], constraints[7], constraints[11], constraints[13]])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>and as LaTeX:</p><pre><code class="language-julia hljs">latex(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
   E &amp;= - H(B) + H(W) - H(D,X,Z) + H(B,D,X,Z) + H(B,D,A,C) \\
     &amp;\quad - H(B,D,W,A,C) \\
     &amp;= C_{1} + C_{2} + C_{3} + C_{4} + I(B ; Y \mid A,C) \\

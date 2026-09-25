@@ -43,13 +43,13 @@ where
 \end{align*}</code></pre><p>The output needs <code>amsmath</code>. Long expressions are wrapped to stay inside the page margin; the package&#39;s own test suite compiles the output with <code>pdflatex</code> where a TeX installation is available and fails on an overfull line.</p><p><a href="../api/#Xitip.latex_string"><code>latex_string</code></a> returns the same text as a <code>String</code>.</p><h2 id="Counterexamples"><a class="docs-heading-anchor" href="#Counterexamples">Counterexamples</a><a id="Counterexamples-1"></a><a class="docs-heading-anchor-permalink" href="#Counterexamples" title="Permalink"></a></h2><p>When a statement cannot be proven, the certificate is a counterexample: entropy values satisfying every basic inequality and every constraint, but not the statement.</p><pre><code class="language-julia hljs">explain(&quot;I(X;Y|Z) &lt;= I(X;Y)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">NOT PROVABLE (false or non-Shannon-type)
 No proof of  H(X) + H(Y) + H(Z) - H(X,Y) - H(X,Z) - H(Y,Z) + H(X,Y,Z) &gt;= 0; it fails for the direction:
     H(X) = 6
-    H(Y) = 6
+    H(Y) = 7
     H(X,Y) = 11
     H(Z) = 6
     H(X,Z) = 11
     H(Y,Z) = 11
     H(X,Y,Z) = 13
-  which satisfy every elemental inequality and constraint, but give -2 &lt; 0.
+  which satisfy every elemental inequality and constraint, but give -1 &lt; 0.
 </code></pre><p>The values are exact rationals, rounded to small numbers where possible, and can be read off the <a href="../api/#Xitip.Counterexample"><code>Counterexample</code></a>:</p><pre><code class="language-julia hljs">counter = only(explain(&quot;H(X) &lt;= H(Y)&quot;).certificates)
 counter.entropies        # indexed by subset bitmask: 1 = X, 2 = Y, 3 = X,Y</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3-element Vector{Rational{BigInt}}:
  5
