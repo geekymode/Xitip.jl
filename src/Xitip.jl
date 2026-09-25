@@ -33,8 +33,8 @@ module Xitip
 
 using LinearAlgebra: norm
 
-export prove, explain, count_variables,
-       Result, Proof, Counterexample, Certificate,
+export prove, explain, print_proof, count_variables,
+       Result, Proof, ProofStep, Counterexample, Certificate,
        XitipError, SyntaxError
 
 const VERSION_STRING = "1.0.0"

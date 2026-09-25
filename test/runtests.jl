@@ -5,7 +5,8 @@ using Xitip
 using Xitip: Problem, parse_lines, parse_statement, tokenize, generators,
              elemental_inequalities, count_elemental, homogenize, nnls,
              certify_true, certify_false, certify_false_exact, exact_solve,
-             simplex, decide, implied, Coef, LinRel, SIMPLEX_FALLBACKS
+             simplex, decide, implied, Coef, LinRel, SIMPLEX_FALLBACKS,
+             describe, format
 
 @testset "Xitip" begin
     include("parser.jl")
@@ -13,4 +14,5 @@ using Xitip: Problem, parse_lines, parse_statement, tokenize, generators,
     include("certificates.jl")
     include("random.jl")
     include("cli.jl")
+    include("proofsteps.jl")
 end

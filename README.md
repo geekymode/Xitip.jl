@@ -15,8 +15,9 @@ in this package. Two things set it apart from those tools:
   tolerance. Coefficients are exact rationals, so `0.1` means exactly 1/10.
 - **Every answer comes with a certificate**, verified in exact rational
   arithmetic: a proof that writes the expression as a non-negative
-  combination of basic inequalities, or a counterexample that satisfies
-  every basic inequality and constraint but not the expression.
+  combination of basic inequalities — printable as a step-by-step
+  derivation — or a counterexample that satisfies every basic inequality
+  and constraint but not the expression.
 
 ## Installation
 
@@ -53,6 +54,23 @@ TRUE
 Proof of  H(X) + H(Y) - H(X,Y) >= 0:
          1 * ( I(X;Y) >= 0 )
 
+julia> print_proof(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
+Proof of  E >= 0  where  E = H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
+
+  step 1:  subtract  1 * ( I(X;Y|Z) >= 0 )
+                     = -H(Z) + H(X,Z) + H(Y,Z) - H(X,Y,Z)
+           leaving   H(Z) + H(X,Y) - H(X,Y,Z)
+
+  step 2:  subtract  1 * ( I(X;Z|Y) >= 0 )
+                     = -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)
+           leaving   H(Y) + H(Z) - H(Y,Z)
+
+  step 3:  subtract  1 * ( I(Y;Z) >= 0 )
+                     = H(Y) + H(Z) - H(Y,Z)
+           leaving   0
+
+  Nothing is left, so E is a sum of non-negative terms: E >= 0.
+
 julia> explain("H(X) <= H(Y)")
 NOT PROVABLE (false or non-Shannon-type)
 No proof of  -H(X) + H(Y) >= 0; it fails for the direction:
@@ -75,6 +93,19 @@ TRUE
 Proof of  H(X) + H(Y) - H(X,Y) >= 0:
          1 * ( I(X;Y) >= 0 )
 
+$ bin/xitip --steps 'H(X,Y,Z) <= H(X,Y) + H(Z)'
+Proof of  E >= 0  where  E = H(Z) + H(X,Y) - H(X,Y,Z)
+
+  step 1:  subtract  1 * ( I(X;Z|Y) >= 0 )
+                     = -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)
+           leaving   H(Y) + H(Z) - H(Y,Z)
+
+  step 2:  subtract  1 * ( I(Y;Z) >= 0 )
+                     = H(Y) + H(Z) - H(Y,Z)
+           leaving   0
+
+  Nothing is left, so E is a sum of non-negative terms: E >= 0.
+
 $ bin/xitip --count 'I(X;Y|Z) <= I(X;Y)'
 3
 ```
@@ -86,6 +117,7 @@ expressions are read from standard input, one per line.
 | Option | Meaning |
 |:--|:--|
 | `-p`, `--proof` | print the proof, or the counterexample if there is none |
+| `-s`, `--steps` | print the proof as a step-by-step derivation |
 | `-c`, `--count` | print the number of distinct random variables instead (like `oXitipLen`) |
 | `--simplex` | decide with the exact simplex method only (slow; for cross-checking) |
 | `-q`, `--quiet` | print nothing, only set the exit code |
@@ -115,13 +147,16 @@ unless followed by `(`.
 |:--|:--|
 | `prove(lines...; method=:auto) -> Bool` | is the first statement implied by the rest? |
 | `explain(lines...; method=:auto) -> Result` | same, with certificates |
+| `print_proof([io], x)` | print a `Result`, `Proof` or `Counterexample` as a step-by-step derivation |
 | `count_variables(lines...) -> Int` | number of distinct random variables |
 | `Xitip.main(args; out, err) -> Int` | the command line interface |
 
 `Result` has fields `verdict::Bool` and `certificates::Vector`, holding
 `Proof` values (one per part of a true statement; an equality has two) or a
 single `Counterexample`. `Proof` lists the multiplier of each basic
-inequality used. `Counterexample` holds the entropy values `h` indexed by
+inequality used, and its `steps` hold the same proof as a derivation
+(`ProofStep`: multiplier, inequality, its entropy form, and the remainder
+after subtracting it). `Counterexample` holds the entropy values `h` indexed by
 subset bitmask, with `direction = true` when `h` is a direction along which
 the expression decreases without bound rather than a single point.
 
@@ -194,11 +229,12 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5191 checks covering the parser, known Shannon and non-Shannon results,
+5268 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random
-probability distributions.
+probability distributions. Proofs are re-verified independently there: the
+multipliers times the inequalities they name must add up to the expression.
 
 ## Credits
 

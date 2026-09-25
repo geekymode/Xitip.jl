@@ -21,6 +21,7 @@ Syntax:
 
 Options:
   -p, --proof     print the proof, or the counterexample if there is none
+  -s, --steps     print the proof as a step-by-step derivation
   -c, --count     print the number of distinct random variables instead
       --simplex   decide with the exact simplex method only (slow, for
                   cross-checking)
@@ -42,7 +43,8 @@ Run the command line interface and return the exit code; see
 `Xitip.USAGE`. The streams can be redirected, which is useful for testing.
 """
 function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
-    count, proof, quiet, use_stdin = false, false, false, isempty(args)
+    count, proof, steps = false, false, false
+    quiet, use_stdin = false, isempty(args)
     method = :auto
     exprs = String[]
     for a in args
@@ -56,6 +58,8 @@ function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
             count = true
         elseif a in ("-p", "--proof")
             proof = true
+        elseif a in ("-s", "--steps")
+            steps = true
         elseif a in ("-q", "--quiet")
             quiet = true
         elseif a == "--simplex"
@@ -80,7 +84,9 @@ function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
             return 0
         end
         result = explain(exprs; method)
-        if proof && !quiet
+        if steps && !quiet
+            print_proof(out, result)
+        elseif proof && !quiet
             show(out, MIME"text/plain"(), result)
         elseif result.verdict
             say("The information expression is TRUE.")

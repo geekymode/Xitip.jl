@@ -3,16 +3,34 @@
 #----------------------------------------------------------------------------
 
 """
+    ProofStep
+
+One step of a step-by-step proof: subtracting `coefficient` times the
+non-negative quantity `name` (whose entropy form is `expansion`) from the
+expression leaves `remainder`.
+"""
+struct ProofStep
+    coefficient::Coef
+    name::String            # "I(X;Y|Z) >= 0" or "constraint 1"
+    expansion::String       # the same quantity written with entropies
+    remainder::String       # what is left of the expression after this step
+end
+
+"""
     Proof
 
 Why an information expression is Shannon-type: it equals a non-negative
 combination of elemental inequalities and constraints, plus a non-negative
 constant.
+
+`steps` is the same proof as a derivation that subtracts one non-negative
+quantity at a time; print it with [`print_proof`](@ref).
 """
 struct Proof
     expression::String
     terms::Vector{Pair{Coef,String}}    # multiplier => inequality used
     constant::Coef                      # left over non-negative constant
+    steps::Vector{ProofStep}
 end
 
 """
@@ -53,13 +71,14 @@ end
 
 Base.convert(::Type{Bool}, r::Result) = r.verdict
 
-format(c::Coef) = denominator(c) == 1 ? string(numerator(c)) : string(c)
+format(c::Coef) = denominator(c) == 1 ? string(numerator(c)) :
+                  string(numerator(c), "/", denominator(c))
 
-# e.g. "2 H(X,Y) - H(Y) + 3 >= 0"
-function format(r::LinRel, names)
+# e.g. "2 H(X,Y) - H(Y) + 3"
+function format(coefs::AbstractDict, names)
     parts = String[]
     # singletons first, then larger subsets, constant term last
-    for (S, c) in sort(collect(r.coefs); by=p -> (p[1] == 0, count_ones(p[1]), p[1]))
+    for (S, c) in sort(collect(coefs); by=p -> (p[1] == 0, count_ones(p[1]), p[1]))
         iszero(c) && continue
         sign = isempty(parts) ? (c < 0 ? "-" : "") : (c < 0 ? " - " : " + ")
         mag = abs(c)
@@ -67,8 +86,12 @@ function format(r::LinRel, names)
         push!(parts, sign * num * (S == 0 ? "" : "H($(setname(S, names)))"))
     end
     isempty(parts) && push!(parts, "0")
-    return join(parts) * (r.equality ? " = 0" : " >= 0")
+    return join(parts)
 end
+
+# e.g. "2 H(X,Y) - H(Y) + 3 >= 0"
+format(r::LinRel, names) =
+    format(r.coefs, names) * (r.equality ? " = 0" : " >= 0")
 
 function Base.show(io::IO, ::MIME"text/plain", p::Proof)
     println(io, "Proof of  ", p.expression, ":")
@@ -104,13 +127,95 @@ Base.show(io::IO, p::Proof) = show(io, MIME"text/plain"(), p)
 Base.show(io::IO, c::Counterexample) = show(io, MIME"text/plain"(), c)
 Base.show(io::IO, r::Result) = show(io, MIME"text/plain"(), r)
 
-# Multipliers y over the columns [gens; slack] -> Proof.
-function make_proof(y, gens, r::LinRel, names)
-    terms = Pair{Coef,String}[]
-    for j in eachindex(gens)
-        iszero(y[j]) || push!(terms, y[j] => describe(gens[j], names))
+"""
+    print_proof([io=stdout], x)
+
+Print a [`Proof`](@ref), [`Counterexample`](@ref) or [`Result`](@ref) as a
+step-by-step derivation: each step subtracts one non-negative quantity from
+the expression and shows what is left, until nothing (or a non-negative
+constant) remains.
+
+# Examples
+```julia
+julia> print_proof(explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
+Proof of  E >= 0  where  E = H(Y) - H(Z) - H(X,Y) + H(X,Z)
+
+  step 1:  subtract  1 * ( constraint 1 (negated) )
+                     = -H(Y) + H(Z) + H(X,Y) - H(X,Z) + H(Y,Z) - H(X,Y,Z)
+           leaving   H(Y,Z) - H(X,Y,Z) ... 
+```
+"""
+print_proof(x) = print_proof(stdout, x)
+
+function print_proof(io::IO, p::Proof)
+    println(io, "Proof of  E >= 0  where  E = ", chop_relation(p.expression))
+    if isempty(p.steps)
+        println(io, "\n  E is the constant ", format(p.constant), " >= 0.")
+        return
     end
-    return Proof(format(r, names), terms, y[end])
+    for (i, s) in enumerate(p.steps)
+        println(io)
+        println(io, "  step ", i, ":  subtract  ", format(s.coefficient),
+                " * ( ", s.name, " )")
+        occursin(s.expansion, s.name) ||
+            println(io, " "^21, "= ", s.expansion)
+        println(io, "           leaving   ", s.remainder)
+    end
+    println(io)
+    if iszero(p.constant)
+        println(io, "  Nothing is left, so E is a sum of non-negative terms: E >= 0.")
+    else
+        println(io, "  The constant ", format(p.constant),
+                " >= 0 is left, so E >= 0.")
+    end
+    return
+end
+
+function print_proof(io::IO, c::Counterexample)
+    show(io, MIME"text/plain"(), c)
+    return
+end
+
+function print_proof(io::IO, r::Result)
+    if isempty(r.certificates)
+        println(io, r.verdict ? "TRUE" : "NOT PROVABLE",
+                " (no certificate: decided by the simplex method)")
+        return
+    end
+    for (i, c) in enumerate(r.certificates)
+        i == 1 || println(io)
+        print_proof(io, c)
+    end
+    return
+end
+
+# "H(X) - H(Y) >= 0" -> "H(X) - H(Y)"
+chop_relation(s::AbstractString) =
+    replace(replace(s, r" >= 0$" => ""), r" = 0$" => "")
+
+# Multipliers y over the columns [gens; slack] -> Proof. Subtracting the
+# terms one by one records the derivation, ending at the leftover constant.
+function make_proof(y, gens, r::LinRel, names)
+    used = [j for j in eachindex(gens) if !iszero(y[j])]
+    # the user's own constraints first, then the largest multipliers
+    sort!(used; by=j -> (gens[j].kind != :constraint, -y[j], j))
+    terms = Pair{Coef,String}[]
+    steps = ProofStep[]
+    remainder = Dict{Int,Coef}(k => v for (k, v) in r.coefs if !iszero(v))
+    for j in used
+        g, c = gens[j], y[j]
+        quantity = Dict{Int,Coef}(g.a)
+        iszero(g.b) || (quantity[0] = g.b)
+        for (k, v) in quantity
+            remainder[k] = get(remainder, k, zero(Coef)) - c * v
+            iszero(remainder[k]) && delete!(remainder, k)
+        end
+        name = describe(g, names)
+        push!(terms, c => name)
+        push!(steps, ProofStep(c, name, format(quantity, names),
+                               format(remainder, names)))
+    end
+    return Proof(format(r, names), terms, y[end], steps)
 end
 
 # Farkas certificate z = (u, τ) -> Counterexample. The entropies are h = -u,
