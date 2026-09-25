@@ -111,6 +111,16 @@ end
                 # a quantity is shown as it was written; a constant has none
                 isempty(t.quantity) || @test occursin(t.quantity, c.statement)
             end
+            # the expansion printed for a quantity must be that quantity:
+            # checked by proving the identity with the prover itself
+            for t in c.terms
+                isempty(t.quantity) && continue
+                @test prove("$(t.quantity) = $(t.expansion)")
+                # and the numbers put in must come to the value shown
+                @test eval(Meta.parse(replace(t.substitution, " " => ""))) ==
+                      t.value
+            end
+
             # a constant counts as itself at a point; along a direction it
             # does not scale, so it does not count at all
             consts = [t for t in c.terms if isempty(t.quantity)]

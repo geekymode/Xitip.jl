@@ -272,8 +272,15 @@ function draw_counterexample(c::Counterexample; size=nothing,
     sizes = [count_ones(S) for S in sort(1:(1 << n) - 1;
                                          by = S -> (count_ones(S), S))]
     terms = c.terms
-    figsize = something(size, (clamp(42 * length(values), 560, 640),
-                              isempty(terms) ? 360 : 560))
+    # the expansions need a line each, and they are wider than the bars
+    widest = isempty(terms) ? 0 :
+             maximum(length(t.quantity) + length(t.expansion) +
+                     length(t.substitution) for t in terms) + 14
+    figsize = something(size,
+                        (clamp(max(42 * length(values),
+                                   round(Int, 6.2 * widest)), 560, 900),
+                         isempty(terms) ? 360 :
+                         560 + 16 * length(terms)))
     fig = Figure(; size=figsize)
 
     row = 1
@@ -305,6 +312,22 @@ function draw_counterexample(c::Counterexample; size=nothing,
         axislegend(ax; position=last(heights) < 0.5 * tall ? :rt : :lt,
                    framevisible=false, labelsize=fontsize - 2)
         hidespines!(ax, :t, :r)
+        row += 1
+        # how each quantity gets its value out of the entropies below
+        lines = String[]
+        widths = (maximum(length(t.quantity) for t in terms),
+                  maximum(length(t.expansion) for t in terms),
+                  maximum(length(t.substitution) for t in terms))
+        for t in terms
+            push!(lines, rpad(t.quantity, widths[1]) * " = " *
+                         rpad(t.expansion, widths[2]) * " = " *
+                         rpad(t.substitution, widths[3]) * " = " *
+                         Xitip.format(t.value))
+        end
+        # the columns are padded with spaces, so they need a fixed width font
+        Label(fig[row, 1], join(lines, "\n"); font="DejaVu Sans Mono",
+              fontsize=fontsize - 3, halign=:left, justification=:left,
+              padding=(8, 8, 0, 6), color=RGBf(0.25, 0.27, 0.32))
         row += 1
     end
 

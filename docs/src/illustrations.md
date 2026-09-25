@@ -116,6 +116,14 @@ written, coloured by which side of the relation it sits on, and the dashed
 lines are what the two sides add up to. The statement asks for the left line
 to sit below the right one, and it does not.
 
+Between the panels, each quantity is written out in entropies with the
+counterexample's numbers put in, so the bars above and the bars below are
+joined by arithmetic the reader can check:
+
+```
+I(A;B|C) = -H(C) + H(A,C) + H(B,C) - H(A,B,C) = -13 + 21 + 21 - 28 = 1
+```
+
 The structure of the entropies is often the point too. For the Ingleton
 expression the singletons all agree, the pairs agree except for one, and the
 triples agree again — the shape of the polymatroid that defeats it:

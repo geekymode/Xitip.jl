@@ -120,6 +120,10 @@ counter = only(explain("H(X) <= H(Y)").certificates)
 counter.entropies        # indexed by subset bitmask: 1 = X, 2 = Y, 3 = X,Y
 ```
 
+The printed counterexample ends with the same reading: what each side of the
+statement comes to there, and how every quantity gets its value out of the
+entropies above it.
+
 ### Reading the numbers
 
 The values are **entropies in bits**, not probabilities: they are bounded by the

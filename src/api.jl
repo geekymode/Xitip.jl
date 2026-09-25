@@ -62,12 +62,19 @@ One quantity of the statement that was refuted, as it stands at the
 counterexample: `2 I(X;Y|Z)` with `coefficient` 2, `quantity` `"I(X;Y|Z)"`,
 `value` the quantity's own value there, and `side` `:left` or `:right` of
 the relation as it was written.
+
+`expansion` is the quantity written with entropies and `substitution` the
+same with the counterexample's numbers put in, so that
+`I(A;B|C) = H(A,C) + H(B,C) - H(C) - H(A,B,C) = 21 + 21 - 13 - 28 = 1`
+can be read off in full.
 """
 struct TermValue
     coefficient::Coef
     quantity::String
     value::Coef
     side::Symbol
+    expansion::String       # the quantity written with entropies
+    substitution::String    # the same, with the counterexample's numbers
 end
 
 """
@@ -178,6 +185,16 @@ function Base.show(io::IO, ::MIME"text/plain", c::Counterexample)
         println(io, "  so it asks for ", format(side_total(c, :left)), " ",
                 c.relation, " ", format(side_total(c, :right)),
                 ", which is false.")
+        # and how each quantity gets its value out of the entropies above
+        println(io, "  where")
+        widths = (maximum(length(t.quantity) for t in c.terms),
+                  maximum(length(t.expansion) for t in c.terms),
+                  maximum(length(t.substitution) for t in c.terms))
+        for t in c.terms
+            println(io, "    ", rpad(t.quantity, widths[1]), "  =  ",
+                    rpad(t.expansion, widths[2]), "  =  ",
+                    rpad(t.substitution, widths[3]), "  =  ", format(t.value))
+        end
     end
     # the numbers are entropies in bits, not probabilities, and a direction
     # may be scaled at will, so neither is bounded by 1
@@ -372,12 +389,34 @@ function term_values(statement, names, at)
         for term in terms
             coefs = Dict{Int,Coef}()
             add_term!(coefs, index, Term(one(Coef), term.quantity), 1)
+            expansion, substitution = expand_with_numbers(coefs, names, at)
             push!(values, TermValue(term.coef,
                                     quantity_label(term.quantity),
-                                    at(coefs), side))
+                                    at(coefs), side, expansion, substitution))
         end
     end
     return values
+end
+
+"""
+A quantity as a sum of entropies, and the same sum with the numbers of the
+counterexample put in: `"H(A,C) + H(B,C) - H(C) - H(A,B,C)"` alongside
+`"21 + 21 - 13 - 28"`.
+"""
+function expand_with_numbers(coefs, names, at)
+    entries = sort(collect(coefs); by=p -> (p[1] == 0, count_ones(p[1]), p[1]))
+    symbols, numbers = String[], String[]
+    for (S, c) in entries
+        iszero(c) && continue
+        sign = isempty(symbols) ? (c < 0 ? "-" : "") : (c < 0 ? " - " : " + ")
+        mag = abs(c)
+        factor = mag == 1 ? "" : format(mag) * " "
+        push!(symbols, sign * factor *
+                       (S == 0 ? format(mag) : "H($(setname(S, names)))"))
+        value = at(Dict(S => one(Coef)))        # the entropy itself, or 1
+        push!(numbers, sign * factor * format(value))
+    end
+    return join(symbols), join(numbers)
 end
 
 """`H(X,Y|Z)` or `I(X;Y|Z)` as written; a constant term has no quantity."""
