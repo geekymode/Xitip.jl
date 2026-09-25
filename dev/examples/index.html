@@ -62,22 +62,24 @@ using CairoMakie, GraphMakie, Graphs, NetworkLayout</code></pre><h2 id="Basic-Sh
      =  C1  +  C2  +  I(W;Y|Z,X)  +  I(Z;X|W)  +  I(X;Y|Z)
 
   where every term is non-negative:
-    C1          =  H(X) - H(W,X) - H(X,Y) + H(W,X,Y)           &gt;= 0   (from constraint 1, reversed: W/X/Y/Z)
-    C2          =  H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y)       &gt;= 0   (from constraint 1, reversed: W/X/Y/Z)
-    I(W;Y|Z,X)  =  -H(Z,X) + H(W,Z,X) + H(Z,X,Y) - H(W,Z,X,Y)  &gt;= 0
-    I(Z;X|W)    =  -H(W) + H(W,Z) + H(W,X) - H(W,Z,X)          &gt;= 0
-    I(X;Y|Z)    =  -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y)          &gt;= 0
+    C1          =  H(X) - H(W,X) - H(X,Y) + H(W,X,Y)           =  -I(W;Y|X)    = 0   (from constraint 1, reversed: W/X/Y/Z)
+    C2          =  H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y)       =  -I(Z;W,X|Y)  = 0   (from constraint 1, reversed: W/X/Y/Z)
+    I(W;Y|Z,X)  =  -H(Z,X) + H(W,Z,X) + H(Z,X,Y) - H(W,Z,X,Y)                  &gt;= 0
+    I(Z;X|W)    =  -H(W) + H(W,Z) + H(W,X) - H(W,Z,X)                          &gt;= 0
+    I(X;Y|Z)    =  -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y)                          &gt;= 0
 
-  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>The constraint itself, drawn over the variables:</p><pre><code class="language-julia hljs">plot_constraints(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;)</code></pre><img src="88e0143b.png" alt="Example block output"/><p>and the proof as a tree, with the two relations the chain implies in their own colour:</p><pre><code class="language-julia hljs">plot_proof_tree(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><img src="0ec19e10.png" alt="Example block output"/><p>The same proof as LaTeX:</p><pre><code class="language-julia hljs">latex(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
+  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>The constraint itself, drawn over the variables:</p><pre><code class="language-julia hljs">plot_constraints(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;)</code></pre><img src="88e0143b.png" alt="Example block output"/><p>and the proof as a tree, with the two relations the chain implies in their own colour:</p><pre><code class="language-julia hljs">plot_proof_tree(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><img src="57d14282.png" alt="Example block output"/><p>The same proof as LaTeX:</p><pre><code class="language-julia hljs">latex(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
   E &amp;= - H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y) \\
     &amp;= C_{1} + C_{2} + I(W ; Y \mid Z,X) + I(Z ; X \mid W) \\
     &amp;\quad + I(X ; Y \mid Z) \;\ge\; 0
 \end{align*}
 where
 \begin{align*}
-  C_{1} &amp;= H(X) - H(W,X) - H(X,Y) + H(W,X,Y) \;\ge\; 0 \\
+  C_{1} &amp;= H(X) - H(W,X) - H(X,Y) + H(W,X,Y) \\
+    &amp;\quad = -I(W ; Y \mid X) \;=\; 0 \\
     &amp;\quad \text{(from constraint 1, reversed)} \\
-  C_{2} &amp;= H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y) \;\ge\; 0 \\
+  C_{2} &amp;= H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y) \\
+    &amp;\quad = -I(Z ; W,X \mid Y) \;=\; 0 \\
     &amp;\quad \text{(from constraint 1, reversed)}
 \end{align*}</code></pre><h2 id="Eight-variables-with-fourteen-constraints"><a class="docs-heading-anchor" href="#Eight-variables-with-fourteen-constraints">Eight variables with fourteen constraints</a><a id="Eight-variables-with-fourteen-constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Eight-variables-with-fourteen-constraints" title="Permalink"></a></h2><p>A statement over <code>A, B, C, D, W, X, Y, Z</code>:</p><p class="math-container">\[I(B; D, X, Z) \le I(W; A, B, C, D)\]</p><p>under constraints tying the four &quot;inner&quot; variables to the four &quot;outer&quot; ones. This is the largest kind of problem the package is comfortable with: 8 variables means 255 dimensions and 1800 basic inequalities.</p><pre><code class="language-julia hljs">statement = &quot;I(B;D,X,Z) &lt;= I(W;A,B,C,D)&quot;
 
@@ -112,15 +114,15 @@ prove([statement; constraints])</code></pre><pre class="documenter-example-outpu
      =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  I(X;Y|B,D,W,A,C)  +  I(W;Y|B,D,A,C)  +  I(A;Y|C)  +  I(C;Y)
 
   where every term is non-negative:
-    C1                =  H(W) - H(Y) - H(B,X,C) + H(B,D,A,C) + H(B,X,C,Y) - H(B,D,W,A,C)     &gt;= 0   (from constraint 2: I(W;A,B,C,D) = I(Y;B,C,X))
-    C2                =  -H(B) + H(D) - H(D,X,Z) + H(B,D,X,Z) + H(B,A,C,Y) - H(B,D,A,C,Y)    &gt;= 0   (from constraint 7: I(D;A,B,C,Y) = I(B;D,X,Z))
-    C3                =  -H(D) - H(B,A,C) + H(B,D,A,C)                                       &gt;= 0   (from constraint 11, reversed: I(D;A,B,C) = 0)
-    C4                =  H(B,X,C) - H(B,X,C,Y) - H(B,D,X,W,A,C) + H(B,D,X,W,A,C,Y)           &gt;= 0   (from constraint 13, reversed: I(Y;A,D,W|B,C,X) = 0)
-    I(B;Y|A,C)        =  -H(A,C) + H(B,A,C) + H(A,C,Y) - H(B,A,C,Y)                          &gt;= 0
-    I(X;Y|B,D,W,A,C)  =  -H(B,D,W,A,C) + H(B,D,X,W,A,C) + H(B,D,W,A,C,Y) - H(B,D,X,W,A,C,Y)  &gt;= 0
-    I(W;Y|B,D,A,C)    =  -H(B,D,A,C) + H(B,D,W,A,C) + H(B,D,A,C,Y) - H(B,D,W,A,C,Y)          &gt;= 0
-    I(A;Y|C)          =  -H(C) + H(A,C) + H(C,Y) - H(A,C,Y)                                  &gt;= 0
-    I(C;Y)            =  H(C) + H(Y) - H(C,Y)                                                &gt;= 0
+    C1                =  H(W) - H(Y) - H(B,X,C) + H(B,D,A,C) + H(B,X,C,Y) - H(B,D,W,A,C)                           = 0   (from constraint 2: I(W;A,B,C,D) = I(Y;B,C,X))
+    C2                =  -H(B) + H(D) - H(D,X,Z) + H(B,D,X,Z) + H(B,A,C,Y) - H(B,D,A,C,Y)                          = 0   (from constraint 7: I(D;A,B,C,Y) = I(B;D,X,Z))
+    C3                =  -H(D) - H(B,A,C) + H(B,D,A,C)                                       =  -I(D;B,A,C)        = 0   (from constraint 11, reversed: I(D;A,B,C) = 0)
+    C4                =  H(B,X,C) - H(B,X,C,Y) - H(B,D,X,W,A,C) + H(B,D,X,W,A,C,Y)           =  -I(D,W,A;Y|B,X,C)  = 0   (from constraint 13, reversed: I(Y;A,D,W|B,C,X) = 0)
+    I(B;Y|A,C)        =  -H(A,C) + H(B,A,C) + H(A,C,Y) - H(B,A,C,Y)                                                &gt;= 0
+    I(X;Y|B,D,W,A,C)  =  -H(B,D,W,A,C) + H(B,D,X,W,A,C) + H(B,D,W,A,C,Y) - H(B,D,X,W,A,C,Y)                        &gt;= 0
+    I(W;Y|B,D,A,C)    =  -H(B,D,A,C) + H(B,D,W,A,C) + H(B,D,A,C,Y) - H(B,D,W,A,C,Y)                                &gt;= 0
+    I(A;Y|C)          =  -H(C) + H(A,C) + H(C,Y) - H(A,C,Y)                                                        &gt;= 0
+    I(C;Y)            =  H(C) + H(Y) - H(C,Y)                                                                      &gt;= 0
 
   so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>Only four of the fourteen constraints are needed — numbers 2, 7, 11 and 13, the ones appearing as <code>C1</code> to <code>C4</code> above:</p><pre><code class="language-julia hljs">needed = [constraints[2], constraints[7], constraints[11], constraints[13]]
 prove([statement; needed])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>None of those four is redundant: dropping any one of them leaves a statement that no longer follows from the basic inequalities. (Each of those queries takes about 12 seconds, so they are not run while this page is built.)</p><pre><code class="language-julia hljs">julia&gt; [prove([statement; needed[setdiff(1:4, i)]]) for i in 1:4]
@@ -128,7 +130,7 @@ prove([statement; needed])</code></pre><pre class="documenter-example-output"><c
  0
  0
  0
- 0</code></pre><p>The whole derivation as a tree. <code>C1</code> to <code>C4</code> are the four constraints it needs, spelled out where they are used; the green leaves are elemental inequalities, and the line down the middle is the remainder shrinking step by step:</p><pre><code class="language-julia hljs">plot_proof_tree(explain([statement; constraints]))</code></pre><img src="9b6c1312.png" alt="Example block output"/><p>and as LaTeX:</p><pre><code class="language-julia hljs">latex(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
+ 0</code></pre><p>The whole derivation as a tree. <code>C1</code> to <code>C4</code> are the four constraints it needs, spelled out where they are used; the green leaves are elemental inequalities, and the line down the middle is the remainder shrinking step by step:</p><pre><code class="language-julia hljs">plot_proof_tree(explain([statement; constraints]))</code></pre><img src="3d6446cb.png" alt="Example block output"/><p>and as LaTeX:</p><pre><code class="language-julia hljs">latex(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
   E &amp;= - H(B) + H(W) - H(D,X,Z) + H(B,D,X,Z) + H(B,D,A,C) \\
     &amp;\quad - H(B,D,W,A,C) \\
     &amp;= C_{1} + C_{2} + C_{3} + C_{4} + I(B ; Y \mid A,C) \\
@@ -138,13 +140,15 @@ prove([statement; needed])</code></pre><pre class="documenter-example-output"><c
 where
 \begin{align*}
   C_{1} &amp;= H(W) - H(Y) - H(B,X,C) + H(B,D,A,C) + H(B,X,C,Y) \\
-    &amp;\quad - H(B,D,W,A,C) \;\ge\; 0 \quad \text{(from constraint 2)} \\
+    &amp;\quad - H(B,D,W,A,C) \;=\; 0 \quad \text{(from constraint 2)} \\
   C_{2} &amp;= - H(B) + H(D) - H(D,X,Z) + H(B,D,X,Z) + H(B,A,C,Y) \\
-    &amp;\quad - H(B,D,A,C,Y) \;\ge\; 0 \quad \text{(from constraint 7)} \\
-  C_{3} &amp;= - H(D) - H(B,A,C) + H(B,D,A,C) \;\ge\; 0 \\
+    &amp;\quad - H(B,D,A,C,Y) \;=\; 0 \quad \text{(from constraint 7)} \\
+  C_{3} &amp;= - H(D) - H(B,A,C) + H(B,D,A,C) \\
+    &amp;\quad = -I(D ; B,A,C) \;=\; 0 \\
     &amp;\quad \text{(from constraint 11, reversed)} \\
   C_{4} &amp;= H(B,X,C) - H(B,X,C,Y) - H(B,D,X,W,A,C) \\
-    &amp;\quad + H(B,D,X,W,A,C,Y) \;\ge\; 0 \\
+    &amp;\quad + H(B,D,X,W,A,C,Y) \\
+    &amp;\quad = -I(D,W,A ; Y \mid B,X,C) \;=\; 0 \\
     &amp;\quad \text{(from constraint 13, reversed)}
 \end{align*}</code></pre><h2 id="Non-Shannon-type-inequalities"><a class="docs-heading-anchor" href="#Non-Shannon-type-inequalities">Non-Shannon-type inequalities</a><a id="Non-Shannon-type-inequalities-1"></a><a class="docs-heading-anchor-permalink" href="#Non-Shannon-type-inequalities" title="Permalink"></a></h2><p>Two famous statements that the basic inequalities cannot settle. The Ingleton expression is not always non-negative for entropies, while the Zhang–Yeung inequality is true but needs more than Shannon-type reasoning, so both come back as &quot;not provable&quot;:</p><pre><code class="language-julia hljs">[prove(&quot;I(A;B) &lt;= I(A;B|C) + I(A;B|D) + I(C;D)&quot;),                      # Ingleton
  prove(&quot;2I(C;D) &lt;= I(A;B) + I(A;C,D) + 3I(C;D|A) + I(C;D|B)&quot;)]         # Zhang-Yeung</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Bool}:
@@ -204,4 +208,4 @@ $ bin/xitip --count &#39;I(X;Y|Z) &lt;= I(X;Y)&#39;
 $ echo &#39;I(X;Y|Z) &lt;= I(X;Y)&#39; | bin/xitip -
 The information expression is either:
     1. FALSE, or
-    2. a non-Shannon type inequality</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../proofs/">« Proofs and counterexamples</a><a class="docs-footer-nextpage" href="../illustrations/">Illustrations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Friday 25 September 2026 16:11">Friday 25 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    2. a non-Shannon type inequality</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../proofs/">« Proofs and counterexamples</a><a class="docs-footer-nextpage" href="../illustrations/">Illustrations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Friday 25 September 2026 16:14">Friday 25 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
