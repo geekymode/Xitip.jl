@@ -243,8 +243,10 @@ function make_proof(y, gens, r::LinRel, names, sources)
         end
         name = describe(g, names, sources)
         push!(terms, c => name)
-        bare = chop_relation(name)
         isconstraint = g.kind == :constraint
+        # only an elemental inequality carries a " >= 0" of our making; a
+        # constraint label ends with the user's own text, relation included
+        bare = isconstraint ? name : chop_relation(name)
         nconstraints += isconstraint
         push!(steps, ProofStep(c, bare,
                                isconstraint ? "C$nconstraints" : bare,

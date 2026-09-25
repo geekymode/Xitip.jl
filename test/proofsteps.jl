@@ -26,8 +26,11 @@
         # the steps mirror the terms and end with nothing left over
         @test length(p.steps) == length(p.terms)
         @test [s.coefficient for s in p.steps] == first.(p.terms)
+        # a constraint keeps its own text (relation included), an elemental
+        # inequality drops the " >= 0" we added to it
         @test [s.name for s in p.steps] ==
-              [Xitip.chop_relation(t) for t in last.(p.terms)]
+              [startswith(t, "from constraint") ? t : Xitip.chop_relation(t)
+               for t in last.(p.terms)]
         @test last(p.steps).remainder == Xitip.format(p.constant)
         return true
     end
@@ -55,6 +58,12 @@
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2"))
     @test occursin("(from constraint 1: H(X) >= 2)", out)
     @test occursin("1/2 C1", out)
+    # a constraint keeps its own relation in the shown text
+    out = sprint(print_proof, explain("I(B;C) <= H(A)", "I(B;C|A) = 0"))
+    @test occursin("(from constraint 1, reversed: I(B;C|A) = 0)", out)
+    out = sprint(print_proof, explain("I(X;Y|Z) <= I(X;Y)", "H(Z) = 0"))
+    @test occursin("H(Z) = 0)", out) && !occursin("H(Z))", out)
+
     # comments are stripped from the shown text
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2  # why not"))
     @test occursin("(from constraint 1: H(X) >= 2)", out)
