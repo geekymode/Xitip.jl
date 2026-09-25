@@ -186,11 +186,12 @@ julia> [prove([statement; needed[setdiff(1:4, i)]]) for i in 1:4]
 ```
 
 The whole derivation as a tree. `C1` to `C4` are the four constraints it
-needs, the green leaves are elemental inequalities, and the line down the
-middle is the remainder shrinking step by step:
+needs, spelled out where they are used; the green leaves are elemental
+inequalities, and the line down the middle is the remainder shrinking step by
+step:
 
 ```@example ex
-plot_proof_tree(explain([statement; constraints]); size=(1500, 820), fontsize=9)
+plot_proof_tree(explain([statement; constraints]))
 ```
 
 and as LaTeX:

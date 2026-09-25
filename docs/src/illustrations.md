@@ -124,14 +124,14 @@ entropy_table(explain("I(X;Y|Z) <= I(X;Y)"))
 
 ## More of the same
 
-A proof that leans on several constraints, over eight variables, drawn smaller
-because it is ten levels deep:
+A proof that leans on several constraints, over eight variables and ten levels
+deep:
 
 ```@example plots
 statement = "I(B;D,X,Z) <= I(W;A,B,C,D)"
 constraints = ["I(W;A,B,C,D) = I(Y;B,C,X)", "I(D;A,B,C,Y) = I(B;D,X,Z)",
                "I(D;A,B,C) = 0", "I(Y;A,D,W|B,C,X) = 0"]
-plot_proof_tree(explain([statement; constraints]); size=(1400, 760), fontsize=9)
+plot_proof_tree(explain([statement; constraints]))
 ```
 
 Han's inequality for three variables, whose proof is a chain of three terms:
@@ -150,5 +150,7 @@ fig = plot_proof_tree(explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
 save("proof.pdf", fig)     # or .png, .svg
 ```
 
-Both drawing functions take `size = (width, height)`, `title` and `fontsize`
-if the defaults do not suit the expression at hand.
+The figure is sized from the labels it has to fit, so it is readable without
+being asked. `size = (width, height)`, `title`, `fontsize` and `wrap` (how many
+characters before a long expression is broken over lines) are there for when
+the default does not suit the expression at hand.

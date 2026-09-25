@@ -251,6 +251,26 @@ function constraint_graph(lines::AbstractVector{<:AbstractString})
 end
 
 """
+    wrap_expression(text, width) -> String
+
+Break an information expression over several lines at its `+` and `-`
+signs, so that no line is much wider than `width` characters. Used to keep
+the labels of a drawn tree readable.
+"""
+function wrap_expression(text::AbstractString, width::Int)
+    length(text) <= width && return String(text)
+    lines = String[]
+    for term in split_terms(text)
+        if isempty(lines) || length(lines[end]) + length(term) + 1 > width
+            push!(lines, term)
+        else
+            lines[end] *= " " * term
+        end
+    end
+    return join(lines, "\n")
+end
+
+"""
     entropy_table(c::Counterexample) -> Vector{Pair{String,Coef}}
 
 The entropy values of a counterexample, as `"H(X,Y)" => value` pairs

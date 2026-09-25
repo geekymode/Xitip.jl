@@ -25,27 +25,55 @@ const EDGE_STYLE = Dict(
     :function    => (:solid, RGBf(0.63, 0.35, 0.12)),
 )
 
-label_of(node::TreeNode, detail::Bool) =
-    detail && !isempty(node.detail) && node.detail != node.label ?
-    node.label * "\n" * node.detail : node.label
+# A constraint is drawn as C1, C2, ... to keep the tree narrow, so its
+# label has to say what that stands for; everything else shows its entropy
+# form only when asked.
+function label_of(node::TreeNode, detail::Bool, width::Int)
+    wrap(text) = Xitip.wrap_expression(text, width)
+    node.kind === :constraint && !isempty(node.detail) &&
+        return node.label * " = " * wrap(node.detail)
+    detail && !isempty(node.detail) && node.detail != node.label &&
+        return wrap(node.label) * "\n" * wrap(node.detail)
+    return wrap(node.label)
+end
 
 """Lay a decomposition tree out and draw it."""
 function draw_tree(t::DecompositionTree; detail::Bool=false,
                    size=nothing, title::AbstractString=t.title,
-                   fontsize::Real=13)
+                   fontsize::Real=14, wrap::Int=34)
     g = SimpleDiGraph(length(t.nodes))
     for (i, node) in enumerate(t.nodes), c in node.children
         add_edge!(g, i, c)
     end
-    labels = [label_of(node, detail) for node in t.nodes]
+    labels = [label_of(node, detail, wrap) for node in t.nodes]
+    # a term hangs off to the left of its parent, so its label reads outwards
+    # from there; everything else keeps its label on the right
+    outwards = falses(length(t.nodes))
+    for node in t.nodes, (k, c) in enumerate(node.children)
+        outwards[c] = k == 1 && length(node.children) > 1
+    end
+    aligns = [o ? (:right, :center) : (:left, :center) for o in outwards]
+    offsets = [Point2f(o ? -0.08 : 0.08, 0) for o in outwards]
     colours = [NODE_COLOUR[node.kind] for node in t.nodes]
-    # a wide figure: the labels are information expressions, not short names
+    # the labels are information expressions, not short names, so the figure
+    # is sized from the widest line and the tallest label, after wrapping
     widest = maximum(maximum(length, split(l, "\n")) for l in labels)
+    tallest = maximum(count(==('\n'), l) for l in labels) + 1
     depth = maximum(node_depth(t, i) for i in eachindex(t.nodes)) + 1
     legend = length(unique(node.kind for node in t.nodes
                            if node.kind !== :expression)) > 1
-    figsize = something(size, (max(700, 26 * widest),
-                              max(260, 130 * depth) + (legend ? 40 : 0)))
+    # how much room the labels on each side need, in characters
+    linewidth(l) = maximum(length, split(l, "\n"))
+    room_left = maximum((linewidth(labels[i]) for i in eachindex(labels)
+                         if outwards[i]); init=0)
+    room_right = maximum((linewidth(labels[i]) for i in eachindex(labels)
+                          if !outwards[i]); init=0)
+    figsize = something(size,
+                        (max(640, round(Int, 0.62 * fontsize *
+                                             (room_left + room_right) +
+                                             40 * depth)),
+                         max(260, depth * (58 + 20 * tallest)) +
+                         (legend ? 40 : 0)))
 
     fig = Figure(; size=figsize)
     ax = Axis(fig[1, 1]; title=String(title), titlesize=fontsize + 3,
@@ -56,8 +84,8 @@ function draw_tree(t::DecompositionTree; detail::Bool=false,
                node_color = colours,
                nlabels = labels,
                nlabels_fontsize = fontsize,
-               nlabels_align = (:left, :center),
-               nlabels_offset = Point2f(0.06, 0),
+               nlabels_align = aligns,
+               nlabels_offset = offsets,
                nlabels_color = colours,
                arrow_show = false,
                edge_color = RGBf(0.72, 0.74, 0.78),
@@ -81,7 +109,14 @@ function draw_tree(t::DecompositionTree; detail::Bool=false,
     hidedecorations!(ax)
     hidespines!(ax)
     # room on the right for the labels, which extend past their node
-    ax.xautolimitmargin = (0.05, 0.05 + 0.014 * widest)
+    # autolimitmargin is a fraction of the data range, so turn the pixels the
+    # labels need into that fraction
+    px_left = 0.55 * fontsize * room_left
+    px_right = 0.55 * fontsize * room_right
+    share = clamp((px_left + px_right) / figsize[1], 0.0, 0.8)
+    scale = 1 / max(0.2, 1 - share)
+    ax.xautolimitmargin = (0.04 + scale * px_left / figsize[1],
+                           0.04 + scale * px_right / figsize[1])
     ax.yautolimitmargin = (0.15, 0.15)
     return fig
 end
