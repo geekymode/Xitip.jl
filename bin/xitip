@@ -1,0 +1,10 @@
+#!/usr/bin/env julia
+#
+# Command line entry point: see `xitip --help`.
+
+const ROOT = dirname(@__DIR__)
+ROOT in LOAD_PATH || push!(LOAD_PATH, ROOT)
+
+using Xitip
+
+exit(Xitip.main(ARGS))
