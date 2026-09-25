@@ -17,7 +17,7 @@ makedocs(;
         "Expression syntax" => "syntax.md",
         "Proofs and counterexamples" => "proofs.md",
         "Examples" => "examples.md",
-        "Plots" => "plots.md",
+        "Illustrations" => "illustrations.md",
         "Command line" => "cli.md",
         "How it works" => "internals.md",
         "API reference" => "api.md",

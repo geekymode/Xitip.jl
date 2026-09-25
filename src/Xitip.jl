@@ -36,9 +36,10 @@ using LinearAlgebra: norm
 export prove, explain, print_proof, latex, latex_string, count_variables,
        Result, Proof, ProofStep, Counterexample, Certificate,
        XitipError, SyntaxError,
-       proof_tree, chain_rule_tree, constraint_graph,
+       proof_tree, chain_rule_tree, constraint_graph, entropy_table,
        DecompositionTree, TreeNode, VariableGraph,
-       plot_proof_tree, plot_chain_rule, plot_constraints
+       plot_proof_tree, plot_chain_rule, plot_constraints,
+       plot_counterexample
 
 const VERSION_STRING = "1.0.0"
 

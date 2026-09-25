@@ -250,6 +250,28 @@ function constraint_graph(lines::AbstractVector{<:AbstractString})
     return VariableGraph(names, edges, join(titles, ",  "))
 end
 
+"""
+    entropy_table(c::Counterexample) -> Vector{Pair{String,Coef}}
+
+The entropy values of a counterexample, as `"H(X,Y)" => value` pairs
+ordered by how many variables each subset holds.
+
+```jldoctest
+julia> entropy_table(only(explain("H(X) <= H(Y)").certificates))
+3-element Vector{Pair{String, Rational{BigInt}}}:
+   "H(X)" => 5
+   "H(Y)" => 4
+ "H(X,Y)" => 7
+```
+"""
+function entropy_table(c::Counterexample)
+    n = length(c.var_names)
+    subsets = sort(1:(1 << n) - 1; by = S -> (count_ones(S), S))
+    return ["H($(setname(S, c.var_names)))" => c.entropies[S] for S in subsets]
+end
+
+entropy_table(r::Result) = entropy_table(only(r.certificates)::Counterexample)
+
 #----------------------------------------------------------------------------
 # Plotting, provided by the extension in ext/XitipMakieExt.jl
 #----------------------------------------------------------------------------
@@ -284,6 +306,17 @@ Draw the chain rule expansion of a joint entropy as a tree; see
 $PLOT_HINT
 """
 plot_chain_rule(::Any...; kw...) = throw(XitipError(PLOT_HINT))
+
+"""
+    plot_counterexample(x; kwargs...) -> Figure
+
+Draw the entropy values that defeat a statement as a bar chart, grouped by
+how many variables each subset holds; `x` may be a [`Result`](@ref) or a
+[`Counterexample`](@ref). See [`entropy_table`](@ref) for the numbers.
+
+$PLOT_HINT
+"""
+plot_counterexample(::Any...; kw...) = throw(XitipError(PLOT_HINT))
 
 """
     plot_constraints(lines...; kwargs...) -> Figure

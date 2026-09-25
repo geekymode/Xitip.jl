@@ -2,7 +2,7 @@
 CurrentModule = Xitip
 ```
 
-# Plots
+# Illustrations
 
 A proof is a decomposition, and a decomposition is a tree: the expression
 splits into a non-negative term and a remainder, which splits again. These
@@ -96,6 +96,49 @@ plot_constraints("H(S) <= H(X,Y)", "S:X,Y", "X.Y", "Y/S/Z")
 Constraints written as general relations (`I(X;Y|Z) = 0` and the like) have no
 natural edge, so they are left out; [`constraint_graph`](@ref) returns exactly
 what is drawn.
+
+## A counterexample
+
+When a statement cannot be proven, the certificate is a set of entropy values
+that satisfies every elemental inequality and constraint but not the statement.
+[`plot_counterexample`](@ref) draws them, grouped by how many variables each
+subset holds:
+
+```@example plots
+plot_counterexample(explain("I(X;Y|Z) <= I(X;Y)"))
+```
+
+The structure is often the point. For the Ingleton expression the singletons
+all agree, the pairs agree except for one, and the triples agree again — the
+shape of the polymatroid that defeats it:
+
+```@example plots
+plot_counterexample(explain("I(A;B) <= I(A;B|C) + I(A;B|D) + I(C;D)"))
+```
+
+[`entropy_table`](@ref) returns the same numbers as exact rationals:
+
+```@example plots
+entropy_table(explain("I(X;Y|Z) <= I(X;Y)"))
+```
+
+## More of the same
+
+A proof that leans on several constraints, over eight variables, drawn smaller
+because it is ten levels deep:
+
+```@example plots
+statement = "I(B;D,X,Z) <= I(W;A,B,C,D)"
+constraints = ["I(W;A,B,C,D) = I(Y;B,C,X)", "I(D;A,B,C,Y) = I(B;D,X,Z)",
+               "I(D;A,B,C) = 0", "I(Y;A,D,W|B,C,X) = 0"]
+plot_proof_tree(explain([statement; constraints]); size=(1400, 760), fontsize=9)
+```
+
+Han's inequality for three variables, whose proof is a chain of three terms:
+
+```@example plots
+plot_proof_tree(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
+```
 
 ## Saving a figure
 

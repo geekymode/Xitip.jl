@@ -36,18 +36,20 @@ latex
 latex_string
 ```
 
-## Decompositions and plots
+## Decompositions and illustrations
 
 ```@docs
 proof_tree
 chain_rule_tree
 constraint_graph
+entropy_table
 DecompositionTree
 TreeNode
 VariableGraph
 plot_proof_tree
 plot_chain_rule
 plot_constraints
+plot_counterexample
 ```
 
 ## Errors

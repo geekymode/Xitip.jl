@@ -100,11 +100,31 @@ end
     @test Set(e[3] for e in g.edges) == Set([:function, :markov])
 end
 
+@testset "counterexample tables" begin
+    t = entropy_table(explain("H(X) <= H(Y)"))
+    @test first.(t) == ["H(X)", "H(Y)", "H(X,Y)"]
+    @test last.(t) == Coef[5, 4, 7]
+
+    # ordered by the size of the subset, then by the subset itself
+    t = entropy_table(explain("I(A;B) <= I(A;B|C) + I(A;B|D) + I(C;D)"))
+    @test length(t) == 15
+    @test first.(t)[1:4] == ["H(A)", "H(B)", "H(C)", "H(D)"]
+    @test last(t).first == "H(A,B,C,D)"
+    counts = [count(==(','), k) + 1 for (k, _) in t]
+    @test issorted(counts)
+    # the values really are the counterexample's
+    c = only(explain("I(A;B) <= I(A;B|C) + I(A;B|D) + I(C;D)").certificates)
+    @test Set(last.(t)) == Set(c.entropies)
+
+    @test_throws Exception entropy_table(explain("H(X) >= 0"))   # no counterexample
+end
+
 @testset "plotting needs the extension" begin
     # without CairoMakie and friends loaded, the hint says what to load
     for call in (() -> plot_proof_tree(explain("H(X) >= 0")),
                  () -> plot_chain_rule(["X", "Y"]),
-                 () -> plot_constraints("H(X) >= 0", "X/Y/Z"))
+                 () -> plot_constraints("H(X) >= 0", "X/Y/Z"),
+                 () -> plot_counterexample(explain("H(X) <= H(Y)")))
         err = try call() catch e; e end
         @test err isa XitipError
         @test occursin("CairoMakie", sprint(showerror, err))

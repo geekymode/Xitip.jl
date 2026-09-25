@@ -6,7 +6,7 @@ CurrentModule = Xitip
 
 Every output on this page is produced when the documentation is built, so it is
 what the current version actually prints. The figures come from the plotting
-utilities described on the [Plots](@ref) page:
+utilities described on the [Illustrations](@ref) page:
 
 ```@example ex
 using Xitip

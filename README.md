@@ -2,7 +2,7 @@
 
 [**Documentation**](https://geekymode.github.io/Xitip.jl/dev/) |
 [Examples](https://geekymode.github.io/Xitip.jl/dev/examples/) |
-[Plots](https://geekymode.github.io/Xitip.jl/dev/plots/) |
+[Illustrations](https://geekymode.github.io/Xitip.jl/dev/illustrations/) |
 [How it works](https://geekymode.github.io/Xitip.jl/dev/internals/)
 
 Information Theoretic Inequality Prover in pure Julia.
@@ -35,7 +35,7 @@ julia> using Pkg; Pkg.develop(path="/path/to/Xitip.jl")
 It has no dependencies beyond the standard library. Plotting is optional: a
 package extension adds it when CairoMakie, GraphMakie, Graphs and
 NetworkLayout are loaded, see the
-[Plots](https://geekymode.github.io/Xitip.jl/dev/plots/) page. `Project.toml` declares
+[Illustrations](https://geekymode.github.io/Xitip.jl/dev/illustrations/) page. `Project.toml` declares
 Julia 1.6 and later; it has only been run here on 1.13, and the CI workflow
 covers 1.6, 1.10 and the current release.
 
@@ -218,7 +218,7 @@ unless followed by `(`.
 | `explain(lines...; method=:auto) -> Result` | same, with certificates |
 | `print_proof([io], x)` | print a `Result`, `Proof` or `Counterexample` as a step-by-step derivation |
 | `proof_tree(x)`, `chain_rule_tree(vars)`, `constraint_graph(lines...)` | the same decompositions as data |
-| `plot_proof_tree(x)`, `plot_chain_rule(vars)`, `plot_constraints(lines...)` | draw them (needs CairoMakie and GraphMakie) |
+| `plot_proof_tree(x)`, `plot_chain_rule(vars)`, `plot_constraints(lines...)`, `plot_counterexample(x)` | draw them (needs CairoMakie and GraphMakie) |
 | `latex([io], x; steps, expand)`, `latex_string(x)` | the same as LaTeX (`align*`, needs `amsmath`) |
 | `count_variables(lines...) -> Int` | number of distinct random variables |
 | `Xitip.main(args; out, err) -> Int` | the command line interface |

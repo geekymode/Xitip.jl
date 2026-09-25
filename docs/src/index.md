@@ -80,8 +80,9 @@ explain("H(X) <= H(Y)")
 * [Proofs and counterexamples](@ref) — what comes back, and how to print it.
 * [Examples](@ref) — worked examples, from one-liners to eight variables with
   fourteen constraints.
-* [Plots](@ref) — proofs as trees, the chain rule, and the constraints of a
-  problem as a graph (needs CairoMakie and GraphMakie).
+* [Illustrations](@ref) — proofs as trees, the chain rule, the constraints of
+  a problem as a graph, and a counterexample as a chart (needs CairoMakie and
+  GraphMakie).
 * [Command line](@ref) — `bin/xitip`.
 * [How it works](@ref) — the algorithm, its cost and its limits.
 * [API reference](@ref) — every exported function.

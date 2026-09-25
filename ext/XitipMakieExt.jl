@@ -2,7 +2,7 @@ module XitipMakieExt
 
 using Xitip
 using Xitip: DecompositionTree, TreeNode, VariableGraph,
-             proof_tree, chain_rule_tree, constraint_graph
+             proof_tree, chain_rule_tree, constraint_graph, entropy_table
 using CairoMakie
 using GraphMakie
 using Graphs
@@ -198,5 +198,36 @@ Xitip.plot_constraints(lines::AbstractString...; kw...) =
     draw_constraints(constraint_graph(collect(lines)); kw...)
 Xitip.plot_constraints(lines::AbstractVector{<:AbstractString}; kw...) =
     draw_constraints(constraint_graph(lines); kw...)
+
+"""Draw the entropy values that defeat a statement."""
+function draw_counterexample(c::Counterexample; size=nothing,
+                             title::AbstractString="", fontsize::Real=13)
+    table = entropy_table(c)
+    values = Float64[Float64(v) for (_, v) in table]
+    labels = [k for (k, _) in table]
+    n = length(c.var_names)
+    sizes = [count_ones(S) for S in sort(1:(1 << n) - 1;
+                                         by = S -> (count_ones(S), S))]
+    figsize = something(size, (max(560, 46 * length(values)), 360))
+    fig = Figure(; size=figsize)
+    head = isempty(title) ?
+           "entropies that satisfy every inequality but give " *
+           "$(Xitip.format(c.value)) < 0" : String(title)
+    ax = Axis(fig[1, 1]; title=head, titlesize=fontsize + 1,
+              ylabel="entropy", xticks=(1:length(values), labels),
+              xticklabelrotation=length(values) > 7 ? pi/4 : 0.0,
+              xticklabelsize=fontsize - 1, yticklabelsize=fontsize - 1)
+    barplot!(ax, 1:length(values), values;
+             color = sizes, colormap = :dense, colorrange = (0, maximum(sizes)),
+             strokewidth = 0.5, strokecolor = RGBf(0.35, 0.37, 0.42))
+    hidespines!(ax, :t, :r)
+    return fig
+end
+
+Xitip.plot_counterexample(c::Counterexample; kw...) = draw_counterexample(c; kw...)
+Xitip.plot_counterexample(r::Result; kw...) =
+    draw_counterexample(only(r.certificates)::Counterexample; kw...)
+Xitip.plot_counterexample(lines::AbstractString...; kw...) =
+    Xitip.plot_counterexample(explain(collect(lines)); kw...)
 
 end # module XitipMakieExt
