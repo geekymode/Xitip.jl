@@ -6,7 +6,21 @@ version = "1.0.0"
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
+# plotting is optional: the extension below loads only when these are present
+[weakdeps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+NetworkLayout = "46757867-2c16-5918-afeb-47bfcb05e46a"
+
+[extensions]
+XitipMakieExt = ["CairoMakie", "GraphMakie", "Graphs", "NetworkLayout"]
+
 [compat]
+CairoMakie = "0.12, 0.13, 0.14, 0.15"
+GraphMakie = "0.5, 0.6"
+Graphs = "1"
+NetworkLayout = "0.4"
 julia = "1.6"
 
 [extras]

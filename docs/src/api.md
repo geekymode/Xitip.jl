@@ -36,6 +36,20 @@ latex
 latex_string
 ```
 
+## Decompositions and plots
+
+```@docs
+proof_tree
+chain_rule_tree
+constraint_graph
+DecompositionTree
+TreeNode
+VariableGraph
+plot_proof_tree
+plot_chain_rule
+plot_constraints
+```
+
 ## Errors
 
 ```@docs

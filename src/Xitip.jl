@@ -35,7 +35,10 @@ using LinearAlgebra: norm
 
 export prove, explain, print_proof, latex, latex_string, count_variables,
        Result, Proof, ProofStep, Counterexample, Certificate,
-       XitipError, SyntaxError
+       XitipError, SyntaxError,
+       proof_tree, chain_rule_tree, constraint_graph,
+       DecompositionTree, TreeNode, VariableGraph,
+       plot_proof_tree, plot_chain_rule, plot_constraints
 
 const VERSION_STRING = "1.0.0"
 
@@ -59,6 +62,7 @@ include("exactsolve.jl")
 include("decide.jl")
 include("simplex.jl")
 include("api.jl")
+include("trees.jl")
 include("latex.jl")
 include("cli.jl")
 
