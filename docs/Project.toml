@@ -1,0 +1,9 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Xitip = "2c11873e-6ecd-4678-a908-85fdf8024558"
+
+[sources]
+Xitip = {path = "/Users/rethna/Library/CloudStorage/Dropbox/xitip/Xitip.jl"}
+
+[compat]
+Documenter = "1"

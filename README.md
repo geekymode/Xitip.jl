@@ -1,5 +1,9 @@
 # Xitip.jl
 
+[**Documentation**](https://geekymode.github.io/Xitip.jl/dev/) |
+[Examples](https://geekymode.github.io/Xitip.jl/dev/examples/) |
+[How it works](https://geekymode.github.io/Xitip.jl/dev/internals/)
+
 Information Theoretic Inequality Prover in pure Julia.
 
 Xitip.jl decides whether an expression over entropies and mutual
