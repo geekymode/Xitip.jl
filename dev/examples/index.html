@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · Xitip.jl</title><meta name="title" content="Examples · Xitip.jl"/><meta property="og:title" content="Examples · Xitip.jl"/><meta property="twitter:title" content="Examples · Xitip.jl"/><meta name="description" content="Documentation for Xitip.jl."/><meta property="og:description" content="Documentation for Xitip.jl."/><meta property="twitter:description" content="Documentation for Xitip.jl."/><meta property="og:url" content="https://geekymode.github.io/Xitip.jl/examples/"/><meta property="twitter:url" content="https://geekymode.github.io/Xitip.jl/examples/"/><link rel="canonical" href="https://geekymode.github.io/Xitip.jl/examples/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Xitip.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../syntax/">Expression syntax</a></li><li><a class="tocitem" href="../proofs/">Proofs and counterexamples</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Basic-Shannon-inequalities"><span>Basic Shannon inequalities</span></a></li><li><a class="tocitem" href="#Constraints"><span>Constraints</span></a></li><li><a class="tocitem" href="#Exact-arithmetic"><span>Exact arithmetic</span></a></li><li><a class="tocitem" href="#Counting-variables"><span>Counting variables</span></a></li><li><a class="tocitem" href="#A-step-by-step-proof"><span>A step-by-step proof</span></a></li><li><a class="tocitem" href="#Data-processing-over-a-four-variable-Markov-chain"><span>Data processing over a four-variable Markov chain</span></a></li><li><a class="tocitem" href="#Eight-variables-with-fourteen-constraints"><span>Eight variables with fourteen constraints</span></a></li><li><a class="tocitem" href="#Non-Shannon-type-inequalities"><span>Non-Shannon-type inequalities</span></a></li><li><a class="tocitem" href="#Degenerate-statements"><span>Degenerate statements</span></a></li><li><a class="tocitem" href="#From-the-command-line"><span>From the command line</span></a></li></ul></li><li><a class="tocitem" href="../cli/">Command line</a></li><li><a class="tocitem" href="../internals/">How it works</a></li><li><a class="tocitem" href="../api/">API reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/geekymode/Xitip.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/geekymode/Xitip.jl/blob/main/docs/src/examples.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><p>Every output on this page is produced when the documentation is built, so it is what the current version actually prints.</p><h2 id="Basic-Shannon-inequalities"><a class="docs-heading-anchor" href="#Basic-Shannon-inequalities">Basic Shannon inequalities</a><a id="Basic-Shannon-inequalities-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-Shannon-inequalities" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Xitip
+
+[prove(&quot;H(X) &gt;= 0&quot;),
+ prove(&quot;I(X;Y) &gt;= 0&quot;),
+ prove(&quot;H(X|Y) &lt;= H(X)&quot;),
+ prove(&quot;H(X,Y) &lt;= H(X) + H(Y)&quot;),          # subadditivity
+ prove(&quot;H(X,Y) = H(X) + H(Y|X)&quot;),         # chain rule
+ prove(&quot;I(X;Y,Z) = I(X;Y) + I(X;Z|Y)&quot;),   # chain rule for mutual information
+ prove(&quot;2 H(X,Y,Z) &lt;= H(X,Y) + H(Y,Z) + H(X,Z)&quot;)]   # Han&#39;s inequality</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">7-element Vector{Bool}:
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1</code></pre><p>Statements that do not follow from the basic inequalities:</p><pre><code class="language-julia hljs">[prove(&quot;H(X) &gt;= 1&quot;),
+ prove(&quot;H(X) &lt;= H(Y)&quot;),
+ prove(&quot;I(X;Y|Z) &lt;= I(X;Y)&quot;),
+ prove(&quot;I(X;Y;Z) &gt;= 0&quot;),        # multivariate mutual information can be negative
+ prove(&quot;H(X,Y) = H(X) + H(Y)&quot;)]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Bool}:
+ 0
+ 0
+ 0
+ 0
+ 0</code></pre><h2 id="Constraints"><a class="docs-heading-anchor" href="#Constraints">Constraints</a><a id="Constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Constraints" title="Permalink"></a></h2><pre><code class="language-julia hljs">[prove(&quot;I(X;Y|Z) &lt;= I(X;Y)&quot;, &quot;H(Z) = 0&quot;),
+ prove(&quot;I(X;Z) &lt;= I(X;Y)&quot;, &quot;X/Y/Z&quot;),          # data processing
+ prove(&quot;I(A;D) &lt;= I(B;C)&quot;, &quot;A/B/C/D&quot;),
+ prove(&quot;I(X;Y) = 0&quot;, &quot;X.Y&quot;),                  # mutual independence
+ prove(&quot;H(X,Y) = H(Y)&quot;, &quot;X:Y&quot;),               # X is a function of Y
+ prove(&quot;X:Y,Z&quot;, &quot;H(X|Y,Z) = 0&quot;)]              # ... and the other way round</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-element Vector{Bool}:
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1</code></pre><p>Constraints that contradict each other are an error, since anything at all would follow from them:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; prove(&quot;H(X) &gt;= 0&quot;, &quot;H(X) = 1&quot;, &quot;H(X) = 2&quot;)</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: the constraints are contradictory</code></pre><h2 id="Exact-arithmetic"><a class="docs-heading-anchor" href="#Exact-arithmetic">Exact arithmetic</a><a id="Exact-arithmetic-1"></a><a class="docs-heading-anchor-permalink" href="#Exact-arithmetic" title="Permalink"></a></h2><p>Coefficients are exact rationals, so decimals behave:</p><pre><code class="language-julia hljs">[prove(&quot;0.1 H(X) + 0.2 H(X) &gt;= 0.3 H(X)&quot;),   # 0.1 + 0.2 == 0.3 exactly here
+ prove(&quot;0.1 H(X) + 0.2 H(X) = 0.3 H(X)&quot;),
+ prove(&quot;H(X) &gt;= 1.00000001&quot;, &quot;H(X) = 1.00000001&quot;),
+ prove(&quot;H(X) &gt;= 1.00000001&quot;, &quot;H(X) = 1&quot;)]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element Vector{Bool}:
+ 1
+ 1
+ 1
+ 0</code></pre><h2 id="Counting-variables"><a class="docs-heading-anchor" href="#Counting-variables">Counting variables</a><a id="Counting-variables-1"></a><a class="docs-heading-anchor-permalink" href="#Counting-variables" title="Permalink"></a></h2><p><a href="../api/#Xitip.count_variables"><code>count_variables</code></a> counts the distinct random variables in all statements, which is what <code>oXitipLen</code> did:</p><pre><code class="language-julia hljs">count_variables(&quot;I(X;Y|Z) &lt;= I(X;Y)&quot;, &quot;H(W) = 0&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4</code></pre><h2 id="A-step-by-step-proof"><a class="docs-heading-anchor" href="#A-step-by-step-proof">A step-by-step proof</a><a id="A-step-by-step-proof-1"></a><a class="docs-heading-anchor-permalink" href="#A-step-by-step-proof" title="Permalink"></a></h2><pre><code class="language-julia hljs">print_proof(explain(&quot;2 H(X,Y,Z) &lt;= H(X,Y) + H(Y,Z) + H(X,Z)&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Proof of  E &gt;= 0  where  E = H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
+
+  E  =  H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
+     =  I(X;Y|Z)  +  [ H(Z) + H(X,Y) - H(X,Y,Z) ]
+     =  I(X;Y|Z)  +  I(X;Z|Y)  +  [ H(Y) + H(Z) - H(Y,Z) ]
+     =  I(X;Y|Z)  +  I(X;Z|Y)  +  I(Y;Z)
+
+  where every term is non-negative:
+    I(X;Y|Z)  =  -H(Z) + H(X,Z) + H(Y,Z) - H(X,Y,Z)  &gt;= 0
+    I(X;Z|Y)  =  -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)  &gt;= 0
+    I(Y;Z)    =  H(Y) + H(Z) - H(Y,Z)                &gt;= 0
+
+  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><h2 id="Data-processing-over-a-four-variable-Markov-chain"><a class="docs-heading-anchor" href="#Data-processing-over-a-four-variable-Markov-chain">Data processing over a four-variable Markov chain</a><a id="Data-processing-over-a-four-variable-Markov-chain-1"></a><a class="docs-heading-anchor-permalink" href="#Data-processing-over-a-four-variable-Markov-chain" title="Permalink"></a></h2><p><code>I(W;Z) &lt;= I(X;Y)</code> given <code>W/X/Y/Z</code>. The chain implies one relation per link, so two of them appear, as <code>C1</code> and <code>C2</code>:</p><pre><code class="language-julia hljs">print_proof(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Proof of  E &gt;= 0  where  E = -H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y)
+
+  E  =  -H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y)
+     =  C1  +  [ -H(W) - H(Z) + H(Y) + H(W,Z) + H(W,X) - H(W,X,Y) ]
+     =  C1  +  C2  +  [ -H(W) - H(Z) + H(W,Z) + H(W,X) + H(Z,Y) - H(W,Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  [ -H(W) - H(Z) + H(W,Z) + H(W,X) + H(Z,X) + H(Z,Y) - H(W,Z,X) - H(Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  I(Z;X|W)  +  [ -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  I(Z;X|W)  +  I(X;Y|Z)
+
+  where every term is non-negative:
+    C1          =  H(X) - H(W,X) - H(X,Y) + H(W,X,Y)           &gt;= 0   (from constraint 1, reversed: W/X/Y/Z)
+    C2          =  H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y)       &gt;= 0   (from constraint 1, reversed: W/X/Y/Z)
+    I(W;Y|Z,X)  =  -H(Z,X) + H(W,Z,X) + H(Z,X,Y) - H(W,Z,X,Y)  &gt;= 0
+    I(Z;X|W)    =  -H(W) + H(W,Z) + H(W,X) - H(W,Z,X)          &gt;= 0
+    I(X;Y|Z)    =  -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y)          &gt;= 0
+
+  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>The same proof as LaTeX:</p><pre><code class="language-julia hljs">latex(explain(&quot;I(W;Z) &lt;= I(X;Y)&quot;, &quot;W/X/Y/Z&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
+  E &amp;= - H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y) \\
+    &amp;= C_{1} + C_{2} + I(W ; Y \mid Z,X) + I(Z ; X \mid W) \\
+    &amp;\quad + I(X ; Y \mid Z) \;\ge\; 0
+\end{align*}
+where
+\begin{align*}
+  C_{1} &amp;= H(X) - H(W,X) - H(X,Y) + H(W,X,Y) \;\ge\; 0 \\
+    &amp;\quad \text{(from constraint 1, reversed)} \\
+  C_{2} &amp;= H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y) \;\ge\; 0 \\
+    &amp;\quad \text{(from constraint 1, reversed)}
+\end{align*}</code></pre><h2 id="Eight-variables-with-fourteen-constraints"><a class="docs-heading-anchor" href="#Eight-variables-with-fourteen-constraints">Eight variables with fourteen constraints</a><a id="Eight-variables-with-fourteen-constraints-1"></a><a class="docs-heading-anchor-permalink" href="#Eight-variables-with-fourteen-constraints" title="Permalink"></a></h2><p>A statement over <code>A, B, C, D, W, X, Y, Z</code>:</p><p class="math-container">\[I(B; D, X, Z) \le I(W; A, B, C, D)\]</p><p>under constraints tying the four &quot;inner&quot; variables to the four &quot;outer&quot; ones. This is the largest kind of problem the package is comfortable with: 8 variables means 255 dimensions and 1800 basic inequalities.</p><pre><code class="language-julia hljs">statement = &quot;I(B;D,X,Z) &lt;= I(W;A,B,C,D)&quot;
+
+constraints = [
+    &quot;I(W;A,B,C,D) = I(X;A,B,W)&quot;,
+    &quot;I(W;A,B,C,D) = I(Y;B,C,X)&quot;,
+    &quot;I(W;A,B,C,D) = I(Z;C,D,Y)&quot;,
+    &quot;I(A;B,C,D,Z) = I(B;D,X,Z)&quot;,
+    &quot;I(B;A,D,W,Z) = I(B;D,X,Z)&quot;,
+    &quot;I(C;A,D,W,Z) = I(B;D,X,Z)&quot;,
+    &quot;I(D;A,B,C,Y) = I(B;D,X,Z)&quot;,
+    &quot;I(C;A,W,Y) = I(B;D,X,Z)&quot;,
+    &quot;I(B;A) = 0&quot;,
+    &quot;I(C;A,B) = 0&quot;,
+    &quot;I(D;A,B,C) = 0&quot;,
+    &quot;I(X;C,D|A,B,W) = 0&quot;,
+    &quot;I(Y;A,D,W|B,C,X) = 0&quot;,
+    &quot;I(Z;A,B,W,X|C,D,Y) = 0&quot;,
+]
+
+prove([statement; constraints])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>The proof uses nine terms, every multiplier equal to one:</p><pre><code class="language-julia hljs">print_proof(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Proof of  E &gt;= 0  where  E = -H(B) + H(W) - H(D,X,Z) + H(B,D,X,Z) + H(B,D,A,C) - H(B,D,W,A,C)
+
+  E  =  -H(B) + H(W) - H(D,X,Z) + H(B,D,X,Z) + H(B,D,A,C) - H(B,D,W,A,C)
+     =  C1  +  [ -H(B) + H(Y) - H(D,X,Z) + H(B,X,C) + H(B,D,X,Z) - H(B,X,C,Y) ]
+     =  C1  +  C2  +  [ -H(D) + H(Y) + H(B,X,C) - H(B,X,C,Y) - H(B,A,C,Y) + H(B,D,A,C,Y) ]
+     =  C1  +  C2  +  C3  +  [ H(Y) + H(B,X,C) + H(B,A,C) - H(B,D,A,C) - H(B,X,C,Y) - H(B,A,C,Y) + H(B,D,A,C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  [ H(Y) + H(B,A,C) - H(B,D,A,C) - H(B,A,C,Y) + H(B,D,A,C,Y) + H(B,D,X,W,A,C) - H(B,D,X,W,A,C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  [ H(Y) + H(A,C) - H(A,C,Y) - H(B,D,A,C) + H(B,D,A,C,Y) + H(B,D,X,W,A,C) - H(B,D,X,W,A,C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  I(X;Y|B,D,W,A,C)  +  [ H(Y) + H(A,C) - H(A,C,Y) - H(B,D,A,C) + H(B,D,W,A,C) + H(B,D,A,C,Y) - H(B,D,W,A,C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  I(X;Y|B,D,W,A,C)  +  I(W;Y|B,D,A,C)  +  [ H(Y) + H(A,C) - H(A,C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  I(X;Y|B,D,W,A,C)  +  I(W;Y|B,D,A,C)  +  I(A;Y|C)  +  [ H(C) + H(Y) - H(C,Y) ]
+     =  C1  +  C2  +  C3  +  C4  +  I(B;Y|A,C)  +  I(X;Y|B,D,W,A,C)  +  I(W;Y|B,D,A,C)  +  I(A;Y|C)  +  I(C;Y)
+
+  where every term is non-negative:
+    C1                =  H(W) - H(Y) - H(B,X,C) + H(B,D,A,C) + H(B,X,C,Y) - H(B,D,W,A,C)     &gt;= 0   (from constraint 2: I(W;A,B,C,D) = I(Y;B,C,X))
+    C2                =  -H(B) + H(D) - H(D,X,Z) + H(B,D,X,Z) + H(B,A,C,Y) - H(B,D,A,C,Y)    &gt;= 0   (from constraint 7: I(D;A,B,C,Y) = I(B;D,X,Z))
+    C3                =  -H(D) - H(B,A,C) + H(B,D,A,C)                                       &gt;= 0   (from constraint 11, reversed: I(D;A,B,C) = 0)
+    C4                =  H(B,X,C) - H(B,X,C,Y) - H(B,D,X,W,A,C) + H(B,D,X,W,A,C,Y)           &gt;= 0   (from constraint 13, reversed: I(Y;A,D,W|B,C,X) = 0)
+    I(B;Y|A,C)        =  -H(A,C) + H(B,A,C) + H(A,C,Y) - H(B,A,C,Y)                          &gt;= 0
+    I(X;Y|B,D,W,A,C)  =  -H(B,D,W,A,C) + H(B,D,X,W,A,C) + H(B,D,W,A,C,Y) - H(B,D,X,W,A,C,Y)  &gt;= 0
+    I(W;Y|B,D,A,C)    =  -H(B,D,A,C) + H(B,D,W,A,C) + H(B,D,A,C,Y) - H(B,D,W,A,C,Y)          &gt;= 0
+    I(A;Y|C)          =  -H(C) + H(A,C) + H(C,Y) - H(A,C,Y)                                  &gt;= 0
+    I(C;Y)            =  H(C) + H(Y) - H(C,Y)                                                &gt;= 0
+
+  so E is a sum of non-negative terms, hence E &gt;= 0.</code></pre><p>Only four of the fourteen constraints are needed — numbers 2, 7, 11 and 13, the ones appearing as <code>C1</code> to <code>C4</code> above:</p><pre><code class="language-julia hljs">prove([statement, constraints[2], constraints[7], constraints[11], constraints[13]])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>and as LaTeX:</p><pre><code class="language-julia hljs">latex(explain([statement; constraints]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">\begin{align*}
+  E &amp;= - H(B) + H(W) - H(D,X,Z) + H(B,D,X,Z) + H(B,D,A,C) \\
+    &amp;\quad - H(B,D,W,A,C) \\
+    &amp;= C_{1} + C_{2} + C_{3} + C_{4} + I(B ; Y \mid A,C) \\
+    &amp;\quad + I(X ; Y \mid B,D,W,A,C) + I(W ; Y \mid B,D,A,C) \\
+    &amp;\quad + I(A ; Y \mid C) + I(C ; Y) \;\ge\; 0
+\end{align*}
+where
+\begin{align*}
+  C_{1} &amp;= H(W) - H(Y) - H(B,X,C) + H(B,D,A,C) + H(B,X,C,Y) \\
+    &amp;\quad - H(B,D,W,A,C) \;\ge\; 0 \quad \text{(from constraint 2)} \\
+  C_{2} &amp;= - H(B) + H(D) - H(D,X,Z) + H(B,D,X,Z) + H(B,A,C,Y) \\
+    &amp;\quad - H(B,D,A,C,Y) \;\ge\; 0 \quad \text{(from constraint 7)} \\
+  C_{3} &amp;= - H(D) - H(B,A,C) + H(B,D,A,C) \;\ge\; 0 \\
+    &amp;\quad \text{(from constraint 11, reversed)} \\
+  C_{4} &amp;= H(B,X,C) - H(B,X,C,Y) - H(B,D,X,W,A,C) \\
+    &amp;\quad + H(B,D,X,W,A,C,Y) \;\ge\; 0 \\
+    &amp;\quad \text{(from constraint 13, reversed)}
+\end{align*}</code></pre><h2 id="Non-Shannon-type-inequalities"><a class="docs-heading-anchor" href="#Non-Shannon-type-inequalities">Non-Shannon-type inequalities</a><a id="Non-Shannon-type-inequalities-1"></a><a class="docs-heading-anchor-permalink" href="#Non-Shannon-type-inequalities" title="Permalink"></a></h2><p>Two famous statements that the basic inequalities cannot settle. The Ingleton expression is not always non-negative for entropies, while the Zhang–Yeung inequality is true but needs more than Shannon-type reasoning, so both come back as &quot;not provable&quot;:</p><pre><code class="language-julia hljs">[prove(&quot;I(A;B) &lt;= I(A;B|C) + I(A;B|D) + I(C;D)&quot;),                      # Ingleton
+ prove(&quot;2I(C;D) &lt;= I(A;B) + I(A;C,D) + 3I(C;D|A) + I(C;D|B)&quot;)]         # Zhang-Yeung</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Bool}:
+ 0
+ 0</code></pre><p>The counterexample for Ingleton is the familiar Vámos-like polymatroid:</p><pre><code class="language-julia hljs">explain(&quot;I(A;B) &lt;= I(A;B|C) + I(A;B|D) + I(C;D)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">NOT PROVABLE (false or non-Shannon-type)
+No proof of  -H(A) - H(B) + H(A,B) + H(A,C) + H(B,C) + H(A,D) + H(B,D) - H(C,D) - H(A,B,C) - H(A,B,D) &gt;= 0; it fails for the direction:
+    H(A) = 13
+    H(B) = 13
+    H(A,B) = 21
+    H(C) = 13
+    H(A,C) = 21
+    H(B,C) = 21
+    H(A,B,C) = 28
+    H(D) = 13
+    H(A,D) = 21
+    H(B,D) = 21
+    H(A,B,D) = 28
+    H(C,D) = 24
+    H(A,C,D) = 28
+    H(B,C,D) = 28
+    H(A,B,C,D) = 30
+  which satisfy every elemental inequality and constraint, but give -1 &lt; 0.
+</code></pre><h2 id="Degenerate-statements"><a class="docs-heading-anchor" href="#Degenerate-statements">Degenerate statements</a><a id="Degenerate-statements-1"></a><a class="docs-heading-anchor-permalink" href="#Degenerate-statements" title="Permalink"></a></h2><pre><code class="language-julia hljs">[prove(&quot;1 &gt;= 0&quot;),
+ prove(&quot;0 &gt;= 1&quot;),
+ prove(&quot;H(X) - H(X) = 0&quot;),
+ prove(&quot;H(X|X) = 0&quot;),
+ prove(&quot;I(X;X) = H(X)&quot;)]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Bool}:
+ 1
+ 0
+ 1
+ 1
+ 1</code></pre><h2 id="From-the-command-line"><a class="docs-heading-anchor" href="#From-the-command-line">From the command line</a><a id="From-the-command-line-1"></a><a class="docs-heading-anchor-permalink" href="#From-the-command-line" title="Permalink"></a></h2><p>The same problems through <code>bin/xitip</code> (see <a href="../cli/#Command-line">Command line</a>):</p><pre><code class="language-console hljs">$ bin/xitip &#39;I(X;Y|Z) &lt;= I(X;Y)&#39; &#39;H(Z) = 0&#39;
+The information expression is TRUE.
+
+$ bin/xitip --steps &#39;H(X,Y,Z) &lt;= H(X,Y) + H(Z)&#39;
+Proof of  E &gt;= 0  where  E = H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)
+
+  E  =  H(Z) + H(X,Y) - H(X,Y,Z)
+     =  I(X;Z|Y)  +  [ H(Y) + H(Z) - H(Y,Z) ]
+     =  I(X;Z|Y)  +  I(Y;Z)
+
+  where every term is non-negative:
+    I(X;Z|Y)  =  -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)  &gt;= 0
+    I(Y;Z)    =  H(Y) + H(Z) - H(Y,Z)                &gt;= 0
+
+  so E is a sum of non-negative terms, hence E &gt;= 0.
+
+$ bin/xitip --latex &#39;H(X,Y,Z) &lt;= H(X,Y) + H(Z)&#39;
+\begin{align*}
+  E &amp;= H(Z) + H(X,Y) - H(X,Y,Z) \\
+    &amp;= I(X ; Z \mid Y) + I(Y ; Z) \;\ge\; 0
+\end{align*}
+
+$ bin/xitip --count &#39;I(X;Y|Z) &lt;= I(X;Y)&#39;
+3
+
+$ echo &#39;I(X;Y|Z) &lt;= I(X;Y)&#39; | bin/xitip -
+The information expression is either:
+    1. FALSE, or
+    2. a non-Shannon type inequality</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../proofs/">« Proofs and counterexamples</a><a class="docs-footer-nextpage" href="../cli/">Command line »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Friday 25 September 2026 14:21">Friday 25 September 2026</span>. Using Julia version 1.13.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
