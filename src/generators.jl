@@ -34,6 +34,9 @@ generator comes from, so that certificates can be printed:
 | `:entropy`    | `(i, 0, 0)`         | `H(X_i | rest) >= 0`             |
 | `:mutinf`     | `(i, j, K)`         | `I(X_i ; X_j | X_K) >= 0`        |
 | `:constraint` | `(row, sign, 0)`    | constraint `row`, negated if < 0 |
+
+`equality` records that the constraint was written as an equality, so the
+generator is not merely non-negative but zero.
 """
 struct Generator
     a::Vector{Pair{Int,Coef}}
@@ -41,7 +44,9 @@ struct Generator
     line::Bool
     kind::Symbol
     data::NTuple{3,Int}
+    equality::Bool
 end
+Generator(a, b, line, kind, data) = Generator(a, b, line, kind, data, false)
 
 """
 Elemental inequalities for `n` random variables:
@@ -90,9 +95,11 @@ function generators(P::Problem)
     for r in P.constraints
         a = [k => v for (k, v) in r.coefs if k != 0]
         b = get(r.coefs, 0, zero(Coef))
-        push!(gens, Generator(a, b, r.equality, :constraint, (r.row, 1, 0)))
+        push!(gens, Generator(a, b, r.equality, :constraint, (r.row, 1, 0),
+                              r.equality))
         r.equality && push!(gens, Generator([k => -v for (k, v) in a], -b,
-                                            false, :constraint, (r.row, -1, 0)))
+                                            false, :constraint, (r.row, -1, 0),
+                                            true))
     end
     return gens
 end

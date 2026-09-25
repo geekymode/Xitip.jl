@@ -14,6 +14,11 @@ quantity `name` is split off the expression, leaving `remainder`. So
 written in the chain of equalities (a short `C1` for a constraint, whose
 text is then in `source`), and `remainder_name` is the remainder as a
 single information quantity where it is one.
+
+`named` is the quantity itself under a name where it has one — an equality
+constraint used in reverse is the negation of one, as in `-I(W;Y|X)` — and
+`justification` says why it is non-negative: `">= 0"` for an inequality,
+`"= 0"` for an equality constraint.
 """
 struct ProofStep
     coefficient::Coef
@@ -25,6 +30,9 @@ struct ProofStep
     remainder_name::String  # the remainder as one quantity, if it is one
     latex_remainder::String # the remainder, as LaTeX
     latex_expansion::String # the quantity written with entropies, as LaTeX
+    named::String           # the quantity under a name, if it has one
+    latex_named::String     # the same, as LaTeX
+    justification::String   # why it is non-negative: ">= 0" or "= 0"
 end
 
 """
@@ -186,9 +194,19 @@ function print_proof(io::IO, p::Proof)
     println(io, "  where every term is non-negative:")
     label_width = maximum(length(s.label) for s in p.steps)
     body_width = maximum(length(s.expansion) for s in p.steps)
+    # a term that has a name of its own is shown under it, which is how a
+    # constraint used in reverse explains itself: C1 = -I(W;Y|X) = 0
+    named_width = maximum(length(s.named) == length(s.label) ? 0 :
+                          length(s.named) for s in p.steps)
     for s in p.steps
         print(io, "    ", rpad(s.label, label_width), "  =  ",
-              rpad(s.expansion, body_width), "  >= 0")
+              rpad(s.expansion, body_width))
+        named = isempty(s.named) || s.named == s.label ? "" : s.named
+        if named_width > 0
+            print(io, isempty(named) ? " "^(named_width + 5) :
+                      "  =  " * rpad(named, named_width))
+        end
+        print(io, "  ", s.justification)
         println(io, isempty(s.source) ? "" : "   (" * s.source * ")")
     end
     println(io)
@@ -255,7 +273,10 @@ function make_proof(y, gens, r::LinRel, names, sources)
                                format(remainder, names),
                                something(name_quantity(remainder, names), ""),
                                latex(remainder, names),
-                               latex(quantity, names)))
+                               latex(quantity, names),
+                               something(signed_name(quantity, names), ""),
+                               something(signed_name(quantity, names; tex=true), ""),
+                               g.equality ? "= 0" : ">= 0"))
     end
     return Proof(format(r, names),
                  something(name_quantity(r.coefs, names), ""),

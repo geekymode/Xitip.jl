@@ -33,10 +33,16 @@ leaves(t) = [n for n in t.nodes if isempty(n.children)]
         @test count(n -> n.kind == :expression, t.nodes) == 1
     end
 
-    # constraints are labelled C1, C2, ... and keep their text as the detail
+    # constraints are labelled C1, C2, ... and carry both their entropy form
+    # and the reason they are non-negative
     t = proof_tree(explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z"))
     cs = [n for n in t.nodes if n.kind == :constraint]
     @test [n.label for n in cs] == ["C1", "C2"]
+    @test first(cs).detail == "H(X) - H(W,X) - H(X,Y) + H(W,X,Y)"
+    @test first(cs).note == "-I(W;Y|X) = 0"
+    # an inequality constraint has no name of its own, only its sign
+    t = proof_tree(explain("H(X) >= 1", "H(X) >= 2"))
+    @test only(n for n in t.nodes if n.kind == :constraint).note == ">= 0"
 
     # a left over constant is a leaf of its own
     t = proof_tree(explain("2 H(X) + 1 >= 0"))

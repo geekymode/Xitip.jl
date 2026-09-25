@@ -20,7 +20,9 @@ struct TreeNode
     detail::String
     kind::Symbol
     children::Vector{Int}
+    note::String            # why the node is non-negative, where that needs saying
 end
+TreeNode(label, detail, kind, children) = TreeNode(label, detail, kind, children, "")
 
 """
     DecompositionTree
@@ -77,9 +79,14 @@ function proof_tree(p::Proof)
     for step in p.steps
         term = isone(step.coefficient) ? step.label :
                format(step.coefficient) * " " * step.label
+        # a constraint is not obviously non-negative, so the node says why:
+        # "= -I(W;Y|X) = 0" for an equality used in reverse, for instance
+        note = isempty(step.source) ? "" :
+               (isempty(step.named) ? step.justification :
+                step.named * " " * step.justification)
         push!(nodes, TreeNode(term, step.expansion,
                               isempty(step.source) ? :term : :constraint,
-                              Int[]))
+                              Int[], note))
         push!(nodes[current].children, length(nodes))
         # nothing left to split after the last step, unless a constant is
         step.remainder == "0" && continue
@@ -93,12 +100,13 @@ function proof_tree(p::Proof)
     for (i, node) in enumerate(nodes)
         node.kind == :remainder && length(node.children) == 1 &&
             nodes[only(node.children)].label == node.label &&
-            (nodes[i] = TreeNode(node.label, node.detail, :term, Int[]))
+            (nodes[i] = TreeNode(node.label, node.detail, :term, Int[], node.note))
     end
     # a left over constant is a term of the sum like any other
     isempty(p.steps) || iszero(p.constant) ||
         (nodes[current] = TreeNode(nodes[current].label, nodes[current].detail,
-                                   :constant, nodes[current].children))
+                                   :constant, nodes[current].children,
+                                   nodes[current].note))
     return prune(DecompositionTree(nodes, 1, p.expression))
 end
 
@@ -114,7 +122,8 @@ function prune(t::DecompositionTree)
     length(order) == length(t.nodes) && return t
     renumber = Dict(old => new for (new, old) in enumerate(order))
     nodes = [TreeNode(t.nodes[i].label, t.nodes[i].detail, t.nodes[i].kind,
-                      [renumber[c] for c in t.nodes[i].children])
+                      [renumber[c] for c in t.nodes[i].children],
+                      t.nodes[i].note)
              for i in order]
     return DecompositionTree(nodes, renumber[t.root], t.title)
 end

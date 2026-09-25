@@ -68,6 +68,17 @@ A statement can imply several relations — a Markov chain implies one per link 
 so a term reads "from constraint 1" rather than "constraint 1". An equality
 constraint used in the other direction is marked "reversed".
 
+A constraint is not non-negative for any obvious reason, so the list says why
+it is. Here `C1` is minus a conditional mutual information, which is
+non-negative only because the Markov chain forces that information to zero:
+
+```
+C1 = H(X) - H(W,X) - H(X,Y) + H(W,X,Y)  =  -I(W;Y|X)  = 0
+```
+
+A constraint written as an inequality is simply `>= 0`, and an elemental
+inequality is non-negative by definition, so neither needs more.
+
 ### LaTeX
 
 [`latex`](@ref) writes a proof for a paper. By default it is the identity

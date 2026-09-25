@@ -173,7 +173,12 @@ function latex(io::IO, p::Proof; steps::Bool=false, expand::Bool=false,
         for extra in body[2:end]
             push!(defs, "    &\\quad " * extra)
         end
-        defs[end] *= " \\;\\ge\\; 0"
+        tail = step.justification == "= 0" ? " \\;=\\; 0" : " \\;\\ge\\; 0"
+        if !isempty(step.latex_named) && step.latex_named != label
+            push!(defs, "    &\\quad = " * step.latex_named * tail)
+        else
+            defs[end] *= tail
+        end
         if !isempty(note)
             # keep the note on the same line only if there is room for it
             length(defs[end]) + length(note) <= width + length(label) + 8 ?

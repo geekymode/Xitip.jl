@@ -30,8 +30,12 @@ const EDGE_STYLE = Dict(
 # form only when asked.
 function label_of(node::TreeNode, detail::Bool, width::Int)
     wrap(text) = Xitip.wrap_expression(text, width)
-    node.kind === :constraint && !isempty(node.detail) &&
-        return node.label * " = " * wrap(node.detail)
+    if node.kind === :constraint && !isempty(node.detail)
+        # "C1 = H(X) - H(W,X) - ...", then why that is non-negative:
+        # "= -I(W;Y|X) = 0", since a constraint is not obviously so
+        head = node.label * " = " * wrap(node.detail)
+        return isempty(node.note) ? head : head * "\n= " * node.note
+    end
     detail && !isempty(node.detail) && node.detail != node.label &&
         return wrap(node.label) * "\n" * wrap(node.detail)
     return wrap(node.label)

@@ -51,6 +51,28 @@
         end
     end
 
+    # a constraint is not obviously non-negative, so its reason is given:
+    # an equality used in reverse is minus a quantity, and equals zero
+    r = explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z")
+    cs = [s for s in only(r.certificates).steps if !isempty(s.source)]
+    @test [s.named for s in cs] == ["-I(W;Y|X)", "-I(Z;W,X|Y)"]
+    @test all(s -> s.justification == "= 0", cs)
+    out = sprint(print_proof, r)
+    @test occursin("=  -I(W;Y|X)    = 0", out)
+    tex = latex_string(r)
+    @test occursin("= -I(W ; Y \\mid X) \\;=\\; 0", tex)
+
+    # an inequality constraint is only >= 0, and has no name of its own
+    r = explain("H(X) >= 1", "H(X) >= 2")
+    c = only(s for s in only(r.certificates).steps if !isempty(s.source))
+    @test c.named == "" && c.justification == ">= 0"
+    @test occursin("C1    =  H(X) - 2  >= 0", sprint(print_proof, r))
+
+    # elemental inequalities are their own name, and stay >= 0
+    steps = only(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)").certificates).steps
+    @test all(s -> s.justification == ">= 0", steps)
+    @test all(s -> s.named == s.label, steps)
+
     # constraints are named by their own text
     out = sprint(print_proof, explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
     @test occursin("C1", out)

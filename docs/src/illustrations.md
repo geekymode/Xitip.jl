@@ -36,7 +36,9 @@ Reading it: Han's inequality for three variables is `I(X;Y|Z)` plus
 `I(X,Y;Z)`, and that second piece is in turn `I(X;Z|Y)` plus `I(Y;Z)`.
 
 Terms coming from your own constraints are drawn in their own colour and
-labelled `C1`, `C2`, ...:
+labelled `C1`, `C2`, ..., with their entropy form and the reason they are
+non-negative. `C1` below is minus a conditional mutual information, which the
+Markov chain forces to zero:
 
 ```@example plots
 plot_proof_tree(explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z"))
