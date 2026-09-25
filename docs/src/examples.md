@@ -5,13 +5,19 @@ CurrentModule = Xitip
 # Examples
 
 Every output on this page is produced when the documentation is built, so it is
-what the current version actually prints.
+what the current version actually prints. The figures come from the plotting
+utilities described on the [Plots](@ref) page:
+
+```@example ex
+using Xitip
+using CairoMakie, GraphMakie, Graphs, NetworkLayout
+CairoMakie.activate!(type="png") # hide
+nothing # hide
+```
 
 ## Basic Shannon inequalities
 
 ```@example ex
-using Xitip
-
 [prove("H(X) >= 0"),
  prove("I(X;Y) >= 0"),
  prove("H(X|Y) <= H(X)"),
@@ -70,10 +76,23 @@ statements, which is what `oXitipLen` did:
 count_variables("I(X;Y|Z) <= I(X;Y)", "H(W) = 0")
 ```
 
+## The chain rule as a tree
+
+```@example ex
+plot_chain_rule(["X", "Y", "Z", "W"])
+```
+
 ## A step-by-step proof
 
 ```@example ex
 print_proof(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
+```
+
+The same derivation as a tree: each branch to the left is a non-negative term,
+and the line down the right is what is still to account for.
+
+```@example ex
+plot_proof_tree(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
 ```
 
 ## Data processing over a four-variable Markov chain
@@ -83,6 +102,19 @@ two of them appear, as `C1` and `C2`:
 
 ```@example ex
 print_proof(explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z"))
+```
+
+The constraint itself, drawn over the variables:
+
+```@example ex
+plot_constraints("I(W;Z) <= I(X;Y)", "W/X/Y/Z")
+```
+
+and the proof as a tree, with the two relations the chain implies in their own
+colour:
+
+```@example ex
+plot_proof_tree(explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z"))
 ```
 
 The same proof as LaTeX:
@@ -151,6 +183,14 @@ julia> [prove([statement; needed[setdiff(1:4, i)]]) for i in 1:4]
  0
  0
  0
+```
+
+The whole derivation as a tree. `C1` to `C4` are the four constraints it
+needs, the green leaves are elemental inequalities, and the line down the
+middle is the remainder shrinking step by step:
+
+```@example ex
+plot_proof_tree(explain([statement; constraints]); size=(1500, 820), fontsize=9)
 ```
 
 and as LaTeX:
