@@ -136,7 +136,21 @@ Only four of the fourteen constraints are needed — numbers 2, 7, 11 and 13,
 the ones appearing as `C1` to `C4` above:
 
 ```@example ex
-prove([statement, constraints[2], constraints[7], constraints[11], constraints[13]])
+needed = [constraints[2], constraints[7], constraints[11], constraints[13]]
+prove([statement; needed])
+```
+
+None of those four is redundant: dropping any one of them leaves a statement
+that no longer follows from the basic inequalities. (Each of those queries
+takes about 12 seconds, so they are not run while this page is built.)
+
+```julia
+julia> [prove([statement; needed[setdiff(1:4, i)]]) for i in 1:4]
+4-element Vector{Bool}:
+ 0
+ 0
+ 0
+ 0
 ```
 
 and as LaTeX:
