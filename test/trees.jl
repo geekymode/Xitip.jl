@@ -20,7 +20,20 @@ leaves(t) = [n for n in t.nodes if isempty(n.children)]
     @test t.nodes[t.root].kind == :expression
     @test t.nodes[t.root].label == "H(Z) + H(X,Y) - H(X,Y,Z)"
     @test [n.label for n in leaves(t)] == ["I(X;Z|Y)", "I(Y;Z)"]
-    @test occursin("├─ I(X;Z|Y)", sprint(show, MIME"text/plain"(), t))
+    text = sprint(show, MIME"text/plain"(), t)
+    @test occursin("├─ I(X;Z|Y)", text)
+    @test occursin("H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)", text)  # named root
+
+    # a constraint shows what it stands for and why it is non-negative
+    text = sprint(show, MIME"text/plain"(), proof_tree(explain("I(W;Z) <= I(X;Y)",
+                                                               "W/X/Y/Z")))
+    @test occursin("C1 = H(X) - H(W,X) - H(X,Y) + H(W,X,Y)", text)
+    @test occursin("= -I(W;Y|X) = 0", text)
+    @test !occursin("= >= 0", text)
+    # an inequality constraint keeps its relation on the same line
+    text = sprint(show, MIME"text/plain"(), proof_tree(explain("H(X) >= 1",
+                                                               "H(X) >= 2")))
+    @test occursin("C1 = H(X) - 2  >= 0", text)
 
     # one leaf per term of the proof, whatever the shape
     for lines in (["2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"],

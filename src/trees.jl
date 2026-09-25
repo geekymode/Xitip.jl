@@ -46,13 +46,37 @@ end
 function show_subtree(io::IO, t::DecompositionTree, i::Int, indent::String,
                       last::Bool)
     node = t.nodes[i]
-    println(io, indent, isempty(indent) ? "" : (last ? "└─ " : "├─ "),
-            node.label)
+    branch = isempty(indent) ? "" : (last ? "└─ " : "├─ ")
+    lines = node_lines(node)
+    println(io, indent, branch, lines[1])
+    # a continuation line sits under the label, past the branch it belongs to
+    below = indent * (isempty(indent) ? "" : (last ? "   " : "│  "))
+    for extra in lines[2:end]
+        println(io, below, " "^length(branch), extra)
+    end
     for (k, c) in enumerate(node.children)
         show_subtree(io, t, c, indent * (isempty(indent) ? "  " :
                      (last ? "   " : "│  ")), k == length(node.children))
     end
     return
+end
+
+"""
+What to print for a node: a constraint says what it stands for and why it
+is non-negative, the expression being decomposed gives its own name where
+it has one, and everything else is its label alone.
+"""
+function node_lines(node::TreeNode)
+    if node.kind === :constraint && !isempty(node.detail)
+        # a note that is only a relation belongs on the same line; one that
+        # names the quantity ("-I(W;Y|X) = 0") gets a line of its own
+        bare = node.note in (">= 0", "= 0")
+        head = node.label * " = " * node.detail * (bare ? "  " * node.note : "")
+        return bare || isempty(node.note) ? [head] : [head, "= " * node.note]
+    elseif node.kind === :expression && !isempty(node.detail)
+        return [node.label * "  =  " * node.detail]
+    end
+    return [node.label]
 end
 
 """
@@ -63,11 +87,20 @@ The derivation behind a proof as a tree: the expression splits into the
 first non-negative term and what is left, that remainder splits again, and
 so on until nothing (or a non-negative constant) remains.
 
+A constraint is shown as what it stands for and why it is non-negative,
+as in the picture:
+
 ```jldoctest
 julia> proof_tree(explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
-H(Z) + H(X,Y) - H(X,Y,Z)
+H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)
   ├─ I(X;Z|Y)
   └─ I(Y;Z)
+
+julia> proof_tree(explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
+-H(Z) + H(Y) + H(X,Z) - H(X,Y)
+  ├─ C1 = H(Y) - H(X,Y) - H(Z,Y) + H(X,Z,Y)
+  │     = -I(X;Z|Y) = 0
+  └─ I(X;Y|Z)
 ```
 """
 function proof_tree(p::Proof)
