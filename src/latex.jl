@@ -77,7 +77,7 @@ julia> latex(explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
 \\end{align*}
 ```
 """
-latex(x::Union{Proof,Counterexample,Result}) = latex(stdout, x)
+latex(x::Union{Proof,Counterexample,Result}; kw...) = latex(stdout, x; kw...)
 
 # Join aligned lines of an align* block (all but the last end with \\).
 print_align(io, lines) = println(io, join(lines, " \\\\\n"))
@@ -89,31 +89,107 @@ function chunk(terms, per)
             for i in 1:per:length(terms)]
 end
 
-function latex(io::IO, p::Proof; per_line::Int=4)
-    terms = String[]
-    for (c, tex) in zip(first.(p.terms), p.latex_terms)
-        sign, body = latex_coefficient(c; first=isempty(terms))
+# Greedily fill lines of at most `width` characters with `pieces`. The
+# first line can be shorter, to leave room for a label in front of it.
+function chunk_width(pieces, width, first_width=width)
+    lines = String[]
+    for piece in pieces
+        budget = length(lines) == 1 ? first_width : width
+        if isempty(lines) || length(lines[end]) + length(piece) + 1 > budget
+            push!(lines, piece)
+        else
+            lines[end] *= " " * piece
+        end
+    end
+    return isempty(lines) ? ["0"] : lines
+end
+
+"""
+    latex([io], p::Proof; steps=false, expand=false, width=68)
+
+The proof as LaTeX. By default the expression is rewritten as a sum of
+non-negative quantities; `steps=true` gives the full chain of equalities,
+splitting one term off at a time with the remainder in brackets.
+`expand=true` lists the entropy form of every term (constraints are always
+listed, as `C_1`, `C_2`, ...).
+"""
+function latex(io::IO, p::Proof; steps::Bool=false, expand::Bool=false,
+               width::Int=68)
+    width = max(30, width - length(" \\;\\ge\\; 0"))   # room for the tail
+    # the terms, and the label each one is written with
+    terms, labels = String[], String[]
+    nconstraints = 0
+    for (k, step) in enumerate(p.steps)
+        isconstraint = !isempty(step.source)
+        isconstraint && (nconstraints += 1)
+        label = isconstraint ? "C_{$nconstraints}" : p.latex_terms[k]
+        push!(labels, label)
+        sign, body = latex_coefficient(step.coefficient; first=isempty(terms))
         factor = isempty(body) ? "" : body * " "
-        push!(terms, (isempty(sign) ? "" : sign * " ") * factor * tex)
+        push!(terms, (isempty(sign) ? "" : sign * " ") * factor * label)
     end
     if !iszero(p.constant)
         sign, body = latex_coefficient(p.constant; first=isempty(terms))
         push!(terms, (isempty(sign) ? "" : sign * " ") *
                      (isempty(body) ? "1" : body))
     end
+
     lines = String[]
-    for (i, part) in enumerate(chunk(split_terms(p.latex_expression), per_line))
-        push!(lines, (i == 1 ? "  &" : "    &\\quad ") * part)
+    emit!(prefix, pieces) =
+        for (i, part) in enumerate(chunk_width(pieces, width))
+            push!(lines, (i == 1 ? prefix : "    &\\quad ") * part)
+        end
+    emit!("  E &= ", split_terms(p.latex_expression))
+    if steps
+        for (k, step) in enumerate(p.steps)
+            pieces = copy(terms[1:k])
+            step.remainder == "0" ||
+                append!(pieces, ["+ ["; split_terms(step.latex_remainder); "]"])
+            emit!("    &= ", pieces)
+        end
+        iszero(p.constant) || emit!("    &= ", terms)
+    else
+        emit!("    &= ", isempty(terms) ? ["0"] : terms)
     end
-    for (i, part) in enumerate(chunk(terms, per_line))
-        push!(lines, (i == 1 ? "    &= " : "    &\\quad ") * part)
-    end
-    push!(lines, "    &\\ge 0 .")
+    lines[end] *= " \\;\\ge\\; 0"
     println(io, "\\begin{align*}")
     print_align(io, lines)
     println(io, "\\end{align*}")
+
+    # definitions: constraints always, the rest on request
+    shown = [(l, s) for (l, s) in zip(labels, p.steps)
+             if expand || !isempty(s.source)]
+    isempty(shown) && return
+    println(io, "where")
+    println(io, "\\begin{align*}")
+    defs = String[]
+    for (label, step) in shown
+        note = isempty(step.source) ? "" :
+               " \\quad \\text{($(constraint_note(step.source)))}"
+        # the label sits in front of the first line, the note after the last
+        body = chunk_width(split_terms(step.latex_expansion), width,
+                           max(20, width - length(label)))
+        push!(defs, "  $label &= " * body[1])
+        for extra in body[2:end]
+            push!(defs, "    &\\quad " * extra)
+        end
+        defs[end] *= " \\;\\ge\\; 0"
+        if !isempty(note)
+            # keep the note on the same line only if there is room for it
+            length(defs[end]) + length(note) <= width + length(label) + 8 ?
+                (defs[end] *= note) :
+                push!(defs, "    &\\quad " * strip(replace(note, "\\quad" => "", count=1)))
+        end
+    end
+    print_align(io, defs)
+    println(io, "\\end{align*}")
     return
 end
+
+# "constraint 1 reversed: X/Y/Z" -> "constraint 1 reversed". The statement
+# itself is not repeated: LaTeX text mode would mangle its <, > and |, and
+# its entropy form is on the same line anyway.
+constraint_note(source::AbstractString) = String(first(split(source, ":")))
 
 # Break a rendered expression back into its terms, for line wrapping.
 function split_terms(expr::AbstractString)
@@ -131,7 +207,7 @@ function split_terms(expr::AbstractString)
     return terms
 end
 
-function latex(io::IO, c::Counterexample; per_line::Int=3)
+function latex(io::IO, c::Counterexample; per_line::Int=3, kw...)
     tail = " \\;=\\; " * latex_number(c.value) * " \\;<\\; 0"
     parts = chunk(split_terms(c.latex_expression), per_line + 1)
     parts[end] *= tail
@@ -150,14 +226,14 @@ function latex(io::IO, c::Counterexample; per_line::Int=3)
     return
 end
 
-function latex(io::IO, r::Result)
+function latex(io::IO, r::Result; kw...)
     if isempty(r.certificates)
         println(io, "% no certificate: decided by the simplex method")
         return
     end
     for (i, c) in enumerate(r.certificates)
         i == 1 || println(io)
-        latex(io, c)
+        latex(io, c; kw...)
     end
     return
 end
@@ -165,5 +241,5 @@ end
 latex_number(c::Coef) = denominator(c) == 1 ? string(numerator(c)) :
                         "\\tfrac{$(numerator(c))}{$(denominator(c))}"
 
-"""LaTeX source of `x` as a string."""
-latex_string(x) = sprint(latex, x)
+"""LaTeX source of `x` as a string; see [`latex`](@ref)."""
+latex_string(x; kw...) = sprint(io -> latex(io, x; kw...))

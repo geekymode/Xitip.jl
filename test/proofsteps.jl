@@ -51,13 +51,13 @@
     # constraints are named by their own text
     out = sprint(print_proof, explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
     @test occursin("C1", out)
-    @test occursin("(constraint 1 reversed: X/Y/Z)", out)
+    @test occursin("(from constraint 1, reversed: X/Y/Z)", out)
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2"))
-    @test occursin("(constraint 1: H(X) >= 2)", out)
+    @test occursin("(from constraint 1: H(X) >= 2)", out)
     @test occursin("1/2 C1", out)
     # comments are stripped from the shown text
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2  # why not"))
-    @test occursin("(constraint 1: H(X) >= 2)", out)
+    @test occursin("(from constraint 1: H(X) >= 2)", out)
     @test !occursin("why not", out)
 
     # printed form: a chain of equalities that peels off one term at a time

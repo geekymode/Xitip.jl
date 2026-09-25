@@ -23,6 +23,8 @@ struct ProofStep
     expansion::String       # the quantity written with entropies
     remainder::String       # what is left of the expression after this step
     remainder_name::String  # the remainder as one quantity, if it is one
+    latex_remainder::String # the remainder, as LaTeX
+    latex_expansion::String # the quantity written with entropies, as LaTeX
 end
 
 """
@@ -249,7 +251,9 @@ function make_proof(y, gens, r::LinRel, names, sources)
                                isconstraint ? bare : "",
                                format(quantity, names),
                                format(remainder, names),
-                               something(name_quantity(remainder, names), "")))
+                               something(name_quantity(remainder, names), ""),
+                               latex(remainder, names),
+                               latex(quantity, names)))
     end
     return Proof(format(r, names),
                  something(name_quantity(r.coefs, names), ""),

@@ -119,8 +119,10 @@ function describe(g::Generator, names, sources=String[])
         cond = K == 0 ? "" : "|" * setname(K, names)
         return "I($(names[i+1]);$(names[j+1])$cond) >= 0"
     end
+    # A statement can imply several relations (a Markov chain implies one
+    # per link), so this is "from constraint k", not "constraint k".
     row, sign, _ = g.data
     text = checkbounds(Bool, sources, row) && !isempty(sources[row]) ?
            ": " * sources[row] : ""
-    return "constraint $(row - 1)$(sign < 0 ? " reversed" : "")$text"
+    return "from constraint $(row - 1)$(sign < 0 ? ", reversed" : "")$text"
 end

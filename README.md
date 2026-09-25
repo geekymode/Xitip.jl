@@ -137,6 +137,56 @@ expressions are read from standard input, one per line.
 Exit codes: `0` true, `1` false or non-Shannon-type, `2` error (syntax,
 contradictory constraints), `3` internal error.
 
+### A longer example
+
+Data processing for a four-variable Markov chain, `I(W;Z) <= I(X;Y)` given
+`W/X/Y/Z`. The chain implies one relation per link, so two of them appear
+as `C1` and `C2`:
+
+```console
+$ bin/xitip --steps 'I(W;Z) <= I(X;Y)' 'W/X/Y/Z'
+Proof of  E >= 0  where  E = -H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y)
+
+  E  =  -H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y)
+     =  C1  +  [ -H(W) - H(Z) + H(Y) + H(W,Z) + H(W,X) - H(W,X,Y) ]
+     =  C1  +  C2  +  [ -H(W) - H(Z) + H(W,Z) + H(W,X) + H(Z,Y) - H(W,Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  [ -H(W) - H(Z) + H(W,Z) + H(W,X) + H(Z,X) + H(Z,Y) - H(W,Z,X) - H(Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  I(Z;X|W)  +  [ -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y) ]
+     =  C1  +  C2  +  I(W;Y|Z,X)  +  I(Z;X|W)  +  I(X;Y|Z)
+
+  where every term is non-negative:
+    C1          =  H(X) - H(W,X) - H(X,Y) + H(W,X,Y)           >= 0   (from constraint 1, reversed: W/X/Y/Z)
+    C2          =  H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y)       >= 0   (from constraint 1, reversed: W/X/Y/Z)
+    I(W;Y|Z,X)  =  -H(Z,X) + H(W,Z,X) + H(Z,X,Y) - H(W,Z,X,Y)  >= 0
+    I(Z;X|W)    =  -H(W) + H(W,Z) + H(W,X) - H(W,Z,X)          >= 0
+    I(X;Y|Z)    =  -H(Z) + H(Z,X) + H(Z,Y) - H(Z,X,Y)          >= 0
+
+  so E is a sum of non-negative terms, hence E >= 0.
+```
+
+The same proof as LaTeX, ready for a paper:
+
+```latex
+julia> latex(explain("I(W;Z) <= I(X;Y)", "W/X/Y/Z"))
+\begin{align*}
+  E &= - H(W) - H(Z) + H(X) + H(Y) + H(W,Z) - H(X,Y) \\
+    &= C_{1} + C_{2} + I(W ; Y \mid Z,X) + I(Z ; X \mid W) \\
+    &\quad + I(X ; Y \mid Z) \;\ge\; 0
+\end{align*}
+where
+\begin{align*}
+  C_{1} &= H(X) - H(W,X) - H(X,Y) + H(W,X,Y) \;\ge\; 0 \\
+    &\quad \text{(from constraint 1, reversed)} \\
+  C_{2} &= H(Y) - H(Z,Y) - H(W,X,Y) + H(W,Z,X,Y) \;\ge\; 0 \\
+    &\quad \text{(from constraint 1, reversed)}
+\end{align*}
+```
+
+`latex(...; steps=true)` gives the full chain instead of the one-line
+identity, and `expand=true` adds the entropy form of every term (the
+constraints are always listed). The output compiles with `amsmath`, and
+long expressions are wrapped to stay inside the page margin.
+
 ## Expression syntax
 
 | Syntax | Meaning |
@@ -159,7 +209,7 @@ unless followed by `(`.
 | `prove(lines...; method=:auto) -> Bool` | is the first statement implied by the rest? |
 | `explain(lines...; method=:auto) -> Result` | same, with certificates |
 | `print_proof([io], x)` | print a `Result`, `Proof` or `Counterexample` as a step-by-step derivation |
-| `latex([io], x)`, `latex_string(x)` | the same as LaTeX (`align*`, needs `amsmath`) |
+| `latex([io], x; steps, expand)`, `latex_string(x)` | the same as LaTeX (`align*`, needs `amsmath`) |
 | `count_variables(lines...) -> Int` | number of distinct random variables |
 | `Xitip.main(args; out, err) -> Int` | the command line interface |
 
@@ -241,7 +291,7 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5336 checks covering the parser, known Shannon and non-Shannon results,
+5345 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random
