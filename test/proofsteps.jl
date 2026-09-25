@@ -25,7 +25,9 @@
         @test total == target
         # the steps mirror the terms and end with nothing left over
         @test length(p.steps) == length(p.terms)
-        @test [s.coefficient => s.name for s in p.steps] == p.terms
+        @test [s.coefficient for s in p.steps] == first.(p.terms)
+        @test [s.name for s in p.steps] ==
+              [Xitip.chop_relation(t) for t in last.(p.terms)]
         @test last(p.steps).remainder == Xitip.format(p.constant)
         return true
     end
@@ -48,27 +50,36 @@
 
     # constraints are named by their own text
     out = sprint(print_proof, explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
-    @test occursin("constraint 1 reversed: X/Y/Z", out)
+    @test occursin("C1", out)
+    @test occursin("(constraint 1 reversed: X/Y/Z)", out)
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2"))
-    @test occursin("constraint 1: H(X) >= 2", out)
+    @test occursin("(constraint 1: H(X) >= 2)", out)
+    @test occursin("1/2 C1", out)
     # comments are stripped from the shown text
     out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2  # why not"))
-    @test occursin("constraint 1: H(X) >= 2 )", out)
+    @test occursin("(constraint 1: H(X) >= 2)", out)
     @test !occursin("why not", out)
 
-    # printed form
+    # printed form: a chain of equalities that peels off one term at a time
     out = sprint(print_proof, explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
-    @test occursin("step 1:", out) && occursin("step 3:", out)
-    @test occursin("leaving   0", out)
-    @test occursin("Nothing is left", out)
-    @test count("subtract", out) == 3
+    @test occursin("E  =  H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)", out)
+    @test occursin("=  I(X;Y|Z)  +  [ H(Z) + H(X,Y) - H(X,Y,Z) ]", out)
+    @test occursin("=  I(X;Y|Z)  +  I(X;Z|Y)  +  I(Y;Z)", out)
+    @test occursin("where every term is non-negative:", out)
+    @test occursin("I(Y;Z)    =  H(Y) + H(Z) - H(Y,Z)", out)
+    @test occursin("so E is a sum of non-negative terms, hence E >= 0.", out)
+    @test count("=  ", out) >= 4          # one chain line per step, plus E
 
     # fractions print readably, and a left over constant is reported
     out = sprint(print_proof, explain("0.5 H(X) + 0.5 H(Y) >= 0.5 H(X,Y)"))
-    @test occursin("1/2 * ( I(X;Y) >= 0 )", out)
+    @test occursin("=  1/2 I(X;Y)", out)
     @test !occursin("//", out)
     out = sprint(print_proof, explain("2 H(X) + 1 >= 0"))
-    @test occursin("constant 1 >= 0 is left", out)
+    @test occursin("[ 1 ]", out)
+    @test occursin("and the constant 1 >= 0, hence E >= 0.", out)
+    # a statement that is identically zero needs no terms at all
+    out = sprint(print_proof, explain("H(X,Y) = H(X) + H(Y|X)"))
+    @test count("E is identically 0", out) == 2
 
     # an equality gives one derivation per direction
     out = sprint(print_proof, explain("H(X,Y) = H(X) + H(Y|X)"))
@@ -82,7 +93,7 @@
 
     # command line
     code, out, _ = run_cli("--steps", "H(X,Y) <= H(X) + H(Y)")
-    @test code == 0 && occursin("step 1:", out)
+    @test code == 0 && occursin("=  I(X;Y)", out)
     code, out, _ = run_cli("-s", "H(X) <= H(Y)")
     @test code == 1 && occursin("No proof of", out)
     code, out, _ = run_cli("-s", "-q", "H(X,Y) <= H(X) + H(Y)")

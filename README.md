@@ -57,26 +57,25 @@ Proof of  H(X) + H(Y) - H(X,Y) >= 0:
 julia> print_proof(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
 Proof of  E >= 0  where  E = H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
 
-  step 1:  subtract  1 * ( I(X;Y|Z) >= 0 )
-                     = -H(Z) + H(X,Z) + H(Y,Z) - H(X,Y,Z)
-           leaving   H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)
+  E  =  H(X,Y) + H(X,Z) + H(Y,Z) - 2 H(X,Y,Z)
+     =  I(X;Y|Z)  +  [ H(Z) + H(X,Y) - H(X,Y,Z) ]
+     =  I(X;Y|Z)  +  I(X;Z|Y)  +  [ H(Y) + H(Z) - H(Y,Z) ]
+     =  I(X;Y|Z)  +  I(X;Z|Y)  +  I(Y;Z)
 
-  step 2:  subtract  1 * ( I(X;Z|Y) >= 0 )
-                     = -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)
-           leaving   H(Y) + H(Z) - H(Y,Z)  =  I(Y;Z)
+  where every term is non-negative:
+    I(X;Y|Z)  =  -H(Z) + H(X,Z) + H(Y,Z) - H(X,Y,Z)  >= 0
+    I(X;Z|Y)  =  -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)  >= 0
+    I(Y;Z)    =  H(Y) + H(Z) - H(Y,Z)                >= 0
 
-  step 3:  subtract  1 * ( I(Y;Z) >= 0 )
-                     = H(Y) + H(Z) - H(Y,Z)
-           leaving   0
-
-  Nothing is left, so E is a sum of non-negative terms: E >= 0.
+  so E is a sum of non-negative terms, hence E >= 0.
 ```
 
-Each step subtracts one non-negative quantity and shows what remains, so a
-derivation can be checked by hand line by line. Where a remainder (or the
-statement itself) is a single information quantity, it is named: the raw
-entropy sum is followed by `= I(X,Y;Z)`. Constraints are named by their own
-text, e.g. `constraint 1: X/Y/Z`.
+The chain of equalities splits one non-negative quantity off the
+expression at a time; the bracket is what is still left to account for, and
+the last line has nothing left. Every term is then listed with its entropy
+form, so each line can be checked by hand. Where a remainder (or the
+statement itself) is a single information quantity it is named, and
+constraints appear as `C1`, `C2`, ... with their own text alongside.
 
 For a paper, `latex` writes the same proof as an `align*` block (long
 expressions are wrapped, and counterexamples become a table of entropy
@@ -105,17 +104,17 @@ Proof of  H(X) + H(Y) - H(X,Y) >= 0:
          1 * ( I(X;Y) >= 0 )
 
 $ bin/xitip --steps 'H(X,Y,Z) <= H(X,Y) + H(Z)'
-Proof of  E >= 0  where  E = H(Z) + H(X,Y) - H(X,Y,Z)
+Proof of  E >= 0  where  E = H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)
 
-  step 1:  subtract  1 * ( I(X;Z|Y) >= 0 )
-                     = -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)
-           leaving   H(Y) + H(Z) - H(Y,Z)
+  E  =  H(Z) + H(X,Y) - H(X,Y,Z)
+     =  I(X;Z|Y)  +  [ H(Y) + H(Z) - H(Y,Z) ]
+     =  I(X;Z|Y)  +  I(Y;Z)
 
-  step 2:  subtract  1 * ( I(Y;Z) >= 0 )
-                     = H(Y) + H(Z) - H(Y,Z)
-           leaving   0
+  where every term is non-negative:
+    I(X;Z|Y)  =  -H(Y) + H(X,Y) + H(Y,Z) - H(X,Y,Z)  >= 0
+    I(Y;Z)    =  H(Y) + H(Z) - H(Y,Z)                >= 0
 
-  Nothing is left, so E is a sum of non-negative terms: E >= 0.
+  so E is a sum of non-negative terms, hence E >= 0.
 
 $ bin/xitip --count 'I(X;Y|Z) <= I(X;Y)'
 3
@@ -242,7 +241,7 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5319 checks covering the parser, known Shannon and non-Shannon results,
+5336 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random

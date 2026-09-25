@@ -5,14 +5,22 @@
 """
     ProofStep
 
-One step of a step-by-step proof: subtracting `coefficient` times the
-non-negative quantity `name` (whose entropy form is `expansion`) from the
-expression leaves `remainder`.
+One step of a step-by-step proof: `coefficient` times the non-negative
+quantity `name` is split off the expression, leaving `remainder`. So
+
+    expression so far  =  coefficient * name  +  remainder
+
+`expansion` is the quantity written with entropies, `label` is how it is
+written in the chain of equalities (a short `C1` for a constraint, whose
+text is then in `source`), and `remainder_name` is the remainder as a
+single information quantity where it is one.
 """
 struct ProofStep
     coefficient::Coef
-    name::String            # "I(X;Y|Z) >= 0" or "constraint 1"
-    expansion::String       # the same quantity written with entropies
+    name::String            # "I(X;Y|Z)"
+    label::String           # "I(X;Y|Z)" or "C1" for a constraint
+    source::String          # "constraint 1: X/Y/Z" for a constraint, else ""
+    expansion::String       # the quantity written with entropies
     remainder::String       # what is left of the expression after this step
     remainder_name::String  # the remainder as one quantity, if it is one
 end
@@ -153,27 +161,40 @@ Proof of  E >= 0  where  E = H(Y) - H(Z) - H(X,Y) + H(X,Z)
 print_proof(x) = print_proof(stdout, x)
 
 function print_proof(io::IO, p::Proof)
-    println(io, "Proof of  E >= 0  where  E = ", chop_relation(p.expression),
-            isempty(p.expression_name) ? "" : "  =  " * p.expression_name)
+    expr = chop_relation(p.expression)
+    head = "Proof of  E >= 0  where  E = " * expr
+    println(io, head, isempty(p.expression_name) ? "" : "  =  " * p.expression_name)
+    println(io)
     if isempty(p.steps)
-        println(io, "\n  E is the constant ", format(p.constant), " >= 0.")
+        println(io, iszero(p.constant) ?
+                    "  E is identically 0, hence E >= 0." :
+                    "  E is the constant $(format(p.constant)) >= 0.")
         return
     end
-    for (i, s) in enumerate(p.steps)
-        println(io)
-        println(io, "  step ", i, ":  subtract  ", format(s.coefficient),
-                " * ( ", s.name, " )")
-        occursin(s.expansion, s.name) ||
-            println(io, " "^21, "= ", s.expansion)
-        println(io, "           leaving   ", s.remainder,
-                isempty(s.remainder_name) ? "" : "  =  " * s.remainder_name)
+    # E = <first term> + [ what is left ] = ... = <all terms>
+    println(io, "  E  =  ", expr)
+    parts = String[]
+    for s in p.steps
+        push!(parts, isone(s.coefficient) ? s.label :
+                     format(s.coefficient) * " " * s.label)
+        rest = s.remainder == "0" ? "" : "  +  [ " * s.remainder * " ]"
+        println(io, "     =  ", join(parts, "  +  "), rest)
+    end
+    println(io)
+    println(io, "  where every term is non-negative:")
+    label_width = maximum(length(s.label) for s in p.steps)
+    body_width = maximum(length(s.expansion) for s in p.steps)
+    for s in p.steps
+        print(io, "    ", rpad(s.label, label_width), "  =  ",
+              rpad(s.expansion, body_width), "  >= 0")
+        println(io, isempty(s.source) ? "" : "   (" * s.source * ")")
     end
     println(io)
     if iszero(p.constant)
-        println(io, "  Nothing is left, so E is a sum of non-negative terms: E >= 0.")
+        println(io, "  so E is a sum of non-negative terms, hence E >= 0.")
     else
-        println(io, "  The constant ", format(p.constant),
-                " >= 0 is left, so E >= 0.")
+        println(io, "  and the constant ", format(p.constant),
+                " >= 0, hence E >= 0.")
     end
     return
 end
@@ -208,6 +229,7 @@ function make_proof(y, gens, r::LinRel, names, sources)
     sort!(used; by=j -> (gens[j].kind != :constraint, -y[j], j))
     terms = Pair{Coef,String}[]
     steps = ProofStep[]
+    nconstraints = 0
     remainder = Dict{Int,Coef}(k => v for (k, v) in r.coefs if !iszero(v))
     for j in used
         g, c = gens[j], y[j]
@@ -219,7 +241,13 @@ function make_proof(y, gens, r::LinRel, names, sources)
         end
         name = describe(g, names, sources)
         push!(terms, c => name)
-        push!(steps, ProofStep(c, name, format(quantity, names),
+        bare = chop_relation(name)
+        isconstraint = g.kind == :constraint
+        nconstraints += isconstraint
+        push!(steps, ProofStep(c, bare,
+                               isconstraint ? "C$nconstraints" : bare,
+                               isconstraint ? bare : "",
+                               format(quantity, names),
                                format(remainder, names),
                                something(name_quantity(remainder, names), "")))
     end

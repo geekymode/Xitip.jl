@@ -39,11 +39,13 @@
     # shown in proofs next to the raw form
     out = sprint(print_proof, explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
     @test occursin("E = H(Z) + H(X,Y) - H(X,Y,Z)  =  I(X,Y;Z)", out)
-    @test occursin("leaving   H(Y) + H(Z) - H(Y,Z)  =  I(Y;Z)", out)
+    @test occursin("[ H(Y) + H(Z) - H(Y,Z) ]", out)
+    @test occursin("+  I(Y;Z)", out)
     # an expression that is not a single quantity shows only the raw form
     out = sprint(print_proof, explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
     @test occursin("E = -H(Z) + H(Y) + H(X,Z) - H(X,Y)\n", out)
-    @test occursin("leaving   -H(Z) + H(X,Z) + H(Z,Y) - H(X,Z,Y)  =  I(X;Y|Z)", out)
+    @test occursin("[ -H(Z) + H(X,Z) + H(Z,Y) - H(X,Z,Y) ]", out)
+    @test occursin("+  I(X;Y|Z)", out)
 
     # naming costs nothing noticeable on a large problem
     @test only(explain("H(X1,X2,X3,X4,X5,X6) <= H(X1)+H(X2)+H(X3)+H(X4)+H(X5)+H(X6)").certificates) isa Proof
