@@ -92,6 +92,11 @@ Time per call in a warm session, on an Apple Silicon laptop:
 The eight-variable example on the [Examples](@ref) page, with fourteen
 constraints, takes about 0.1 s.
 
+A statement that cannot be proven takes longer when constraints are involved,
+because the counterexample then has to be certified by an exact projection
+rather than by rounding: about 12 s for the eight-variable problem above with
+one of its constraints removed.
+
 Cost grows with ``2^n``: nine variables is noticeably slower and ten is
 impractical. The command line adds about two seconds for Julia's startup, so
 prefer one session for many statements.

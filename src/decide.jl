@@ -144,8 +144,10 @@ function decide(gens::Vector{Generator}, nvars::Int, v::Dict{Int,Coef};
             else
                 lines = [j for (j, g) in enumerate(gens) if g.line]
                 z = certify_false(cols, lines, t, r, nvars, D)
-                z === nothing && count(passive) <= 100 &&
-                    (z = certify_false_exact(cols, t, passive, D))
+                # the exact projection costs O(k^3) rational operations for k
+                # passive columns (10s at k = 252), which still beats the
+                # simplex fallback on every problem seen so far
+                z === nothing && (z = certify_false_exact(cols, t, passive, D))
                 z === nothing || return false, z
             end
         end
