@@ -111,9 +111,12 @@ struct Problem
     var_names::Vector{String}
     inquiries::Vector{LinRel}       # the statement to prove (first line)
     constraints::Vector{LinRel}     # all further lines
+    sources::Vector{String}         # the text each statement came from
 end
 
-function Problem(stmts::Vector{Statement})
+Problem(stmts::Vector{Statement}) = Problem(stmts, fill("", length(stmts)))
+
+function Problem(stmts::Vector{Statement}, sources::Vector{String})
     names = variables(stmts)
     length(names) > MAX_VARS &&
         throw(XitipError("Too many variables! At most $MAX_VARS are allowed."))
@@ -122,5 +125,6 @@ function Problem(stmts::Vector{Statement})
                            r.equality, row)
     rels = [[clean(r, row) for r in linrels(index, s)]
             for (row, s) in enumerate(stmts)]
-    return Problem(names, rels[1], reduce(vcat, rels[2:end]; init=LinRel[]))
+    return Problem(names, rels[1], reduce(vcat, rels[2:end]; init=LinRel[]),
+                   sources)
 end

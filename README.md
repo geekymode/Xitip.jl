@@ -80,6 +80,23 @@ No proof of  -H(X) + H(Y) >= 0; it fails for the direction:
   which satisfy every elemental inequality and constraint, but give -1 < 0.
 ```
 
+Each step subtracts one non-negative quantity and shows what remains, so a
+derivation can be checked by hand line by line. Constraints are named by
+their own text, e.g. `constraint 1: X/Y/Z`.
+
+For a paper, `latex` writes the same proof as an `align*` block (long
+expressions are wrapped, and counterexamples become a table of entropy
+values):
+
+```julia
+julia> latex(explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
+\begin{align*}
+  &H(Z) + H(X,Y) - H(X,Y,Z) \\
+    &= I(X ; Z \mid Y) + I(Y ; Z) \\
+    &\ge 0 .
+\end{align*}
+```
+
 ### Command line
 
 `bin/xitip` is a ready-to-run script:
@@ -118,6 +135,7 @@ expressions are read from standard input, one per line.
 |:--|:--|
 | `-p`, `--proof` | print the proof, or the counterexample if there is none |
 | `-s`, `--steps` | print the proof as a step-by-step derivation |
+| `-l`, `--latex` | print the proof or counterexample as LaTeX |
 | `-c`, `--count` | print the number of distinct random variables instead (like `oXitipLen`) |
 | `--simplex` | decide with the exact simplex method only (slow; for cross-checking) |
 | `-q`, `--quiet` | print nothing, only set the exit code |
@@ -148,6 +166,7 @@ unless followed by `(`.
 | `prove(lines...; method=:auto) -> Bool` | is the first statement implied by the rest? |
 | `explain(lines...; method=:auto) -> Result` | same, with certificates |
 | `print_proof([io], x)` | print a `Result`, `Proof` or `Counterexample` as a step-by-step derivation |
+| `latex([io], x)`, `latex_string(x)` | the same as LaTeX (`align*`, needs `amsmath`) |
 | `count_variables(lines...) -> Int` | number of distinct random variables |
 | `Xitip.main(args; out, err) -> Int` | the command line interface |
 
@@ -229,12 +248,14 @@ fallback.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5268 checks covering the parser, known Shannon and non-Shannon results,
+5290 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random
 probability distributions. Proofs are re-verified independently there: the
 multipliers times the inequalities they name must add up to the expression.
+Where a TeX installation is available, the generated LaTeX is compiled with
+`pdflatex` and checked for lines running past the margin.
 
 ## Credits
 

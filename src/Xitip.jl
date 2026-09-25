@@ -33,7 +33,7 @@ module Xitip
 
 using LinearAlgebra: norm
 
-export prove, explain, print_proof, count_variables,
+export prove, explain, print_proof, latex, latex_string, count_variables,
        Result, Proof, ProofStep, Counterexample, Certificate,
        XitipError, SyntaxError
 
@@ -58,6 +58,7 @@ include("exactsolve.jl")
 include("decide.jl")
 include("simplex.jl")
 include("api.jl")
+include("latex.jl")
 include("cli.jl")
 
 # Run a small workload while the package is precompiled, so that the first

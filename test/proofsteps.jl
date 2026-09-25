@@ -4,10 +4,10 @@
     # Recompute the proof independently: the multipliers times the
     # inequalities they name, plus the constant, must equal the expression.
     function check_proof(lines, p::Proof)
-        P = Problem(parse_lines(lines))
+        P = Problem(Xitip.parse_statements(lines)...)
         names = P.var_names
         gens = generators(P)
-        by_name = Dict(Xitip.describe(g, names) => g for g in gens)
+        by_name = Dict(Xitip.describe(g, names, P.sources) => g for g in gens)
         total = Dict{Int,Coef}()
         add!(k, v) = (total[k] = get(total, k, zero(Coef)) + v)
         for (c, name) in p.terms
@@ -45,6 +45,16 @@
             check_proof(lines, p)
         end
     end
+
+    # constraints are named by their own text
+    out = sprint(print_proof, explain("I(X;Z) <= I(X;Y)", "X/Y/Z"))
+    @test occursin("constraint 1 reversed: X/Y/Z", out)
+    out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2"))
+    @test occursin("constraint 1: H(X) >= 2", out)
+    # comments are stripped from the shown text
+    out = sprint(print_proof, explain("H(X) >= 1", "H(X) >= 2  # why not"))
+    @test occursin("constraint 1: H(X) >= 2 )", out)
+    @test !occursin("why not", out)
 
     # printed form
     out = sprint(print_proof, explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))

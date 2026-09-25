@@ -102,11 +102,12 @@ setname(mask::Int, names) =
     join((names[i] for i in 1:length(names) if mask & (1 << (i-1)) != 0), ",")
 
 """
-    describe(g::Generator, names) -> String
+    describe(g::Generator, names, sources=String[]) -> String
 
 The generator as a readable information expression, e.g. `"I(X;Y|Z) >= 0"`.
+A constraint is named by its number and, if `sources` has it, its own text.
 """
-function describe(g::Generator, names)
+function describe(g::Generator, names, sources=String[])
     full = (1 << length(names)) - 1
     if g.kind == :entropy
         i = g.data[1]
@@ -119,5 +120,7 @@ function describe(g::Generator, names)
         return "I($(names[i+1]);$(names[j+1])$cond) >= 0"
     end
     row, sign, _ = g.data
-    return "constraint $(row - 1)" * (sign < 0 ? " (negated)" : "")
+    text = checkbounds(Bool, sources, row) && !isempty(sources[row]) ?
+           ": " * sources[row] : ""
+    return "constraint $(row - 1)$(sign < 0 ? " reversed" : "")$text"
 end

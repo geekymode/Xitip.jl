@@ -15,4 +15,5 @@ using Xitip: Problem, parse_lines, parse_statement, tokenize, generators,
     include("random.jl")
     include("cli.jl")
     include("proofsteps.jl")
+    include("latex.jl")
 end

@@ -22,6 +22,7 @@ Syntax:
 Options:
   -p, --proof     print the proof, or the counterexample if there is none
   -s, --steps     print the proof as a step-by-step derivation
+  -l, --latex     print the proof (or counterexample) as LaTeX
   -c, --count     print the number of distinct random variables instead
       --simplex   decide with the exact simplex method only (slow, for
                   cross-checking)
@@ -43,7 +44,7 @@ Run the command line interface and return the exit code; see
 `Xitip.USAGE`. The streams can be redirected, which is useful for testing.
 """
 function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
-    count, proof, steps = false, false, false
+    count, proof, steps, tex = false, false, false, false
     quiet, use_stdin = false, isempty(args)
     method = :auto
     exprs = String[]
@@ -60,6 +61,8 @@ function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
             proof = true
         elseif a in ("-s", "--steps")
             steps = true
+        elseif a in ("-l", "--latex")
+            tex = true
         elseif a in ("-q", "--quiet")
             quiet = true
         elseif a == "--simplex"
@@ -84,7 +87,9 @@ function main(args::Vector{String}; out::IO=stdout, err::IO=stderr)::Int
             return 0
         end
         result = explain(exprs; method)
-        if steps && !quiet
+        if tex && !quiet
+            latex(out, result)
+        elseif steps && !quiet
             print_proof(out, result)
         elseif proof && !quiet
             show(out, MIME"text/plain"(), result)

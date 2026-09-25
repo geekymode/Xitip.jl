@@ -31,6 +31,8 @@ struct Proof
     terms::Vector{Pair{Coef,String}}    # multiplier => inequality used
     constant::Coef                      # left over non-negative constant
     steps::Vector{ProofStep}
+    latex_expression::String            # the same, as LaTeX
+    latex_terms::Vector{String}
 end
 
 """
@@ -51,6 +53,7 @@ struct Counterexample
     entropies::Vector{Coef}             # h[S], indexed by subset bitmask
     value::Coef                         # value of the expression at h (< 0)
     direction::Bool
+    latex_expression::String            # the expression, as LaTeX
 end
 
 """A [`Proof`](@ref) or a [`Counterexample`](@ref)."""
@@ -195,7 +198,7 @@ chop_relation(s::AbstractString) =
 
 # Multipliers y over the columns [gens; slack] -> Proof. Subtracting the
 # terms one by one records the derivation, ending at the leftover constant.
-function make_proof(y, gens, r::LinRel, names)
+function make_proof(y, gens, r::LinRel, names, sources)
     used = [j for j in eachindex(gens) if !iszero(y[j])]
     # the user's own constraints first, then the largest multipliers
     sort!(used; by=j -> (gens[j].kind != :constraint, -y[j], j))
@@ -210,12 +213,14 @@ function make_proof(y, gens, r::LinRel, names)
             remainder[k] = get(remainder, k, zero(Coef)) - c * v
             iszero(remainder[k]) && delete!(remainder, k)
         end
-        name = describe(g, names)
+        name = describe(g, names, sources)
         push!(terms, c => name)
         push!(steps, ProofStep(c, name, format(quantity, names),
                                format(remainder, names)))
     end
-    return Proof(format(r, names), terms, y[end], steps)
+    return Proof(format(r, names), terms, y[end], steps,
+                 latex(r.coefs, names),
+                 [latex(gens[j], names, sources) for j in used])
 end
 
 # Farkas certificate z = (u, τ) -> Counterexample. The entropies are h = -u,
@@ -227,7 +232,8 @@ function make_counterexample(z, r::LinRel, names, D)
     h = direction ? -z[1:D-1] : -z[1:D-1] ./ s
     value = sum((S == 0 ? (direction ? zero(Coef) : c) : c * h[S])
                 for (S, c) in r.coefs; init=zero(Coef))
-    return Counterexample(format(r, names), names, h, value, direction)
+    return Counterexample(format(r, names), names, h, value, direction,
+                          latex(r.coefs, names))
 end
 
 """
@@ -277,7 +283,7 @@ Proof of  H(X) + H(Y) - H(X,Y) >= 0:
 explain(lines::AbstractString...; kw...) = explain(collect(lines); kw...)
 
 function explain(lines::AbstractVector{<:AbstractString}; method::Symbol=:auto)
-    P = Problem(parse_lines(lines))
+    P = Problem(parse_statements(lines)...)
     n = length(P.var_names)
     gens = generators(P)
     D = 1 << n
@@ -294,7 +300,7 @@ function explain(lines::AbstractVector{<:AbstractString}; method::Symbol=:auto)
             return Result(false, [make_counterexample(z, rel, P.var_names, D)])
         end
         cert === nothing ||
-            push!(proofs, make_proof(cert, gens, rel, P.var_names))
+            push!(proofs, make_proof(cert, gens, rel, P.var_names, P.sources))
     end
     return Result(true, proofs)
 end

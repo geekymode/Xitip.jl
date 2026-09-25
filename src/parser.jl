@@ -188,9 +188,16 @@ function parse_statement(line::AbstractString)
     return stmt
 end
 
-# Parse all lines; syntax errors are annotated with the line and a marker.
-function parse_lines(lines)
+"""
+    parse_statements(lines) -> (statements, sources)
+
+Parse all lines, dropping empty and comment-only ones and keeping the text
+each statement came from. Syntax errors are annotated with the offending
+line and a marker.
+"""
+function parse_statements(lines)
     stmts = Statement[]
+    sources = String[]
     for (row, line) in enumerate(lines)
         stmt = try
             parse_statement(line)
@@ -202,8 +209,14 @@ function parse_lines(lines)
                          "    ", " "^(e.col - 1), "^"^max(1, e.len))
             throw(SyntaxError(msg, e.col, e.len))
         end
-        stmt === nothing || push!(stmts, stmt)
+        if stmt !== nothing
+            push!(stmts, stmt)
+            push!(sources, strip(split(line, "#")[1]))
+        end
     end
     isempty(stmts) && throw(XitipError("no information expression given"))
-    return stmts
+    return stmts, sources
 end
+
+"""Statements of `lines`; see [`parse_statements`](@ref)."""
+parse_lines(lines) = first(parse_statements(lines))
