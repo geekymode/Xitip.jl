@@ -388,6 +388,10 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
         peak > 0 && (volume .*= reach / peak)
     end
     fig = Figure(; size=size)
+    ticks = range(0, reach; step=reach / 8)
+    tick_labels(values) = [v ≈ round(v / (reach / 2)) * (reach / 2) ?
+                           string(round(v; digits=2)) : "" for v in values]
+    grid = RGBAf(0.55, 0.58, 0.62, 0.45)
 
     ax = Axis3(fig[1, 1];
                title="the Shannon cone for two variables",
@@ -397,6 +401,12 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
                xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
                zticklabelsize=fontsize - 3,
                azimuth=azimuth, elevation=elevation,
+               # Axis3 has no minor grid, so the ticks are the fine ones and
+               # only every other gets a label
+               xticks=ticks, yticks=ticks, zticks=ticks,
+               xtickformat=tick_labels, ytickformat=tick_labels,
+               ztickformat=tick_labels,
+               xgridcolor=grid, ygridcolor=grid, zgridcolor=grid,
                protrusions=30)
     corners = [Point3f(0, 0, 0)]
     for (ray, _) in rays
@@ -479,6 +489,8 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
     end
     limits!(ax2, -0.25, 1.45, -0.18, 1.3)
     hidespines!(ax2, :t, :r)
+    ax2.xminorgridvisible = ax2.yminorgridvisible = true
+    ax2.xminorticks = ax2.yminorticks = IntervalsBetween(4)
     return fig
 end
 
