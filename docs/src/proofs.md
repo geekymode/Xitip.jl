@@ -168,6 +168,72 @@ distribution, where `I(X;Y) = 0` while `I(X;Y|Z) = 1` bit.
     does not show the statement is false. The Zhang–Yeung inequality is true,
     yet correctly reported as not provable here.
 
+## When it is not provable: what would make it true
+
+A counterexample says the statement does not follow from the basic
+inequalities. It does not say the statement is useless — most information
+inequalities in practice hold *under assumptions*.
+[`sufficient_conditions`](@ref) looks for those assumptions.
+
+```@example proofs
+sufficient_conditions("I(X;Y|Z) <= I(X;Y)")
+```
+
+Conditioning can raise mutual information, so the statement is false in
+general. It becomes provable the moment any one of the three pairs is
+conditionally independent — two of those readings being the Markov chains
+`X/Y/Z` and `Y/X/Z`, which is the familiar fact that along a Markov chain
+conditioning cannot help.
+
+The candidate assumptions are the elemental quantities, each forced to
+zero. That is a deliberate choice rather than a convenience: every
+elemental quantity reads as a condition one would state out loud — an
+independence, a conditional independence, or a functional dependence — so
+every answer is something you can say in words, and the constraint text
+printed beside it can be fed straight back in:
+
+```@example proofs
+prove("I(X;Y|Z) <= I(X;Y)", "I(X;Z|Y) = 0")
+```
+
+Assumptions can be combined. Some statements need two:
+
+```@example proofs
+sufficient_conditions("2H(X,Y,Z) <= H(X,Y) + H(Y,Z)"; maxsize = 2)
+```
+
+and some have nothing that saves them:
+
+```@example proofs
+sufficient_conditions("H(X) + H(Y) + H(Z) <= H(X,Y,Z)"; maxsize = 2)
+```
+
+Only minimal sets are reported: once an assumption works on its own, no
+pair containing it is offered.
+
+### How the search is kept small
+
+The number of candidates is the number of elemental inequalities, which
+grows quickly — 9 for three variables, 28 for four, 1800 for eight — and
+combining them squares that. Two things keep it in hand.
+
+The first is the counterexample. If a quantity is **already zero** at the
+counterexample, assuming it is zero leaves that counterexample exactly
+where it was, so that assumption cannot possibly help. Only quantities that
+are strictly positive there are worth trying, and a combination is worth
+trying only when at least one of its members is. This is a sound rule, not
+a heuristic, and the test suite checks it against brute force over every
+candidate: the pruned search returns exactly the same answers.
+
+The second is plain book-keeping: `limit` caps how many sets are reported
+and `budget` caps how many statements are proven, so a large problem
+returns something useful rather than running away. The printed result says
+when the search stopped early.
+
+Each answer is verified the ordinary way — by proving the statement again
+with the assumption added — so a reported condition is one the prover
+accepts, not one the search believes.
+
 ## Results without a certificate
 
 If the exact simplex fallback had to decide (which the test suite has never

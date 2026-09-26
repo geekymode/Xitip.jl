@@ -17,6 +17,7 @@ using Xitip: Problem, parse_lines, parse_statement, tokenize, generators,
     include("proofsteps.jl")
     include("latex.jl")
     include("quantities.jl")
+    include("conditions.jl")
     include("trees.jl")
     include("geometry.jl")
 end

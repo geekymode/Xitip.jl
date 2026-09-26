@@ -43,6 +43,9 @@ proof_tree
 chain_rule_tree
 constraint_graph
 entropy_table
+sufficient_conditions
+Conditions
+SufficientCondition
 DecompositionTree
 TreeNode
 VariableGraph
