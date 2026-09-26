@@ -365,56 +365,117 @@ const FACET_COLOUR = RGBf(0.36, 0.52, 0.72)
 The Shannon cone for two variables: three facets, one per elemental
 inequality, meeting along the three extreme rays.
 """
-function Xitip.plot_entropy_cone(; samples::Int=250, alphabet::Int=3,
-                                 outside=nothing, size=(680, 620),
-                                 fontsize::Real=14, reach::Real=1.0,
+function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
+                                 outside=nothing, size=(660, 860),
+                                 fontsize::Real=13, reach::Real=1.0,
+                                 azimuth::Real=1.32pi, elevation::Real=0.16pi,
+                                 slice::Bool=true,
                                  rng::AbstractRNG=Random.default_rng())
     rays = Xitip.cone_rays(2)
+    # the slice wants them normalised; the cone itself reads better with
+    # them spread through its volume, which is what they are
+    cloud = samples > 0 ?
+            Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
+                                   normalize=true, rng=rng) :
+            zeros(3, 0)
+    volume = samples > 0 ?
+             Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
+                                    normalize=false, rng=rng) :
+             zeros(3, 0)
+    if !isempty(volume)
+        peak = maximum(volume[3, :])
+        peak > 0 && (volume .*= reach / peak)
+    end
     fig = Figure(; size=size)
+
     ax = Axis3(fig[1, 1];
                title="the Shannon cone for two variables",
-               titlesize=fontsize + 2,
+               titlesize=fontsize + 3,
                xlabel="H(X)", ylabel="H(Y)", zlabel="H(X,Y)",
                xlabelsize=fontsize, ylabelsize=fontsize, zlabelsize=fontsize,
                xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
-               zticklabelsize=fontsize - 3, azimuth=1.15pi, elevation=0.22pi)
-
-    # each facet is spanned by two of the rays, so it draws as a triangle
+               zticklabelsize=fontsize - 3,
+               azimuth=azimuth, elevation=elevation,
+               protrusions=30)
     corners = [Point3f(0, 0, 0)]
     for (ray, _) in rays
         push!(corners, Point3f((reach .* ray)...))
     end
+    # the three facets, each spanned by two of the rays
     for (i, j) in ((2, 3), (2, 4), (3, 4))
         mesh!(ax, [corners[1], corners[i], corners[j]], [1 2 3];
-              color=(FACET_COLOUR, 0.28), transparency=true)
+              color=(FACET_COLOUR, 0.20), transparency=true)
         lines!(ax, [corners[i], corners[j]]; color=FACET_COLOUR, linewidth=1.2)
     end
-    for (k, (ray, meaning)) in enumerate(rays)
+    # the slice where H(X,Y) = reach: the cone is every positive multiple of it
+    mesh!(ax, corners[2:4], [1 2 3]; color=(RGBf(0.16, 0.45, 0.35), 0.30),
+          transparency=true)
+    for (ray, meaning) in rays
         tip = Point3f((reach .* ray)...)
         lines!(ax, [Point3f(0, 0, 0), tip]; color=RGBf(0.20, 0.29, 0.44),
                linewidth=2.5)
-        text!(ax, tip; text=" " * meaning, fontsize=fontsize - 2,
+        text!(ax, tip; text="  " * meaning, fontsize=fontsize - 2,
               color=RGBf(0.20, 0.29, 0.44), align=(:left, :center))
     end
-
-    if samples > 0
-        cloud = Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
-                                       normalize=false, rng=rng)
-        peak = maximum(cloud[3, :])
-        peak > 0 && (cloud .*= reach / peak)
-        scatter!(ax, cloud[1, :], cloud[2, :], cloud[3, :];
-                 markersize=5, color=(RGBf(0.16, 0.45, 0.35), 0.55),
+    if !isempty(volume)
+        scatter!(ax, volume[1, :], volume[2, :], volume[3, :];
+                 markersize=4, color=(RGBf(0.16, 0.45, 0.35), 0.45),
                  label="entropies of random distributions")
     end
     if outside !== nothing
-        p = Point3f(Float64.(outside)...)
-        scatter!(ax, [p]; markersize=13, color=RGBf(0.75, 0.22, 0.17),
-                 marker=:xcross, label="outside the cone")
+        scatter!(ax, [Point3f(Float64.(outside)...)]; markersize=13,
+                 color=RGBf(0.75, 0.22, 0.17), marker=:xcross,
+                 label="outside the cone")
     end
-    # below the cone: an Axis3 has no corner to spare
-    (samples > 0 || outside !== nothing) &&
+    (!isempty(cloud) || outside !== nothing) &&
         Legend(fig[2, 1], ax; orientation=:horizontal, framevisible=false,
-               labelsize=fontsize - 3, padding=(0, 0, 0, 0))
+               labelsize=fontsize - 2, padding=(0, 0, 0, 0))
+
+    slice || return fig
+
+    # the same cone seen through that slice, where it is a plain triangle
+    ax2 = Axis(fig[3, 1];
+               title="the slice H(X,Y) = 1, where the cone is a triangle",
+               titlesize=fontsize + 1,
+               xlabel="H(X) / H(X,Y)", ylabel="H(Y) / H(X,Y)",
+               xlabelsize=fontsize - 1, ylabelsize=fontsize - 1,
+               xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
+               aspect=DataAspect())
+    triangle = [Point2f(1, 0), Point2f(0, 1), Point2f(1, 1)]
+    poly!(ax2, triangle; color=(FACET_COLOUR, 0.18),
+          strokecolor=FACET_COLOUR, strokewidth=1.5)
+    isempty(cloud) ||
+        scatter!(ax2, cloud[1, :], cloud[2, :]; markersize=5,
+                 color=(RGBf(0.16, 0.45, 0.35), 0.55))
+    # each edge of the triangle is one of the elemental inequalities, tight
+    for (a, b, label, offset) in
+            ((Point2f(1, 0), Point2f(1, 1), "H(Y|X) = 0", Point2f(0.04, 0)),
+             (Point2f(0, 1), Point2f(1, 1), "H(X|Y) = 0", Point2f(0, 0.05)),
+             (Point2f(1, 0), Point2f(0, 1), "I(X;Y) = 0", Point2f(-0.03, -0.03)))
+        middle = (a + b) / 2 + offset
+        text!(ax2, middle; text=label, fontsize=fontsize - 3,
+              color=RGBf(0.20, 0.29, 0.44),
+              align=(offset[1] > 0 ? :left : offset[2] > 0 ? :center : :right,
+                     offset[2] > 0 ? :bottom : :top))
+    end
+    for (ray, meaning) in rays
+        point = Point2f(ray[1], ray[2])
+        text!(ax2, point; text="  " * meaning, fontsize=fontsize - 3,
+              color=RGBf(0.16, 0.45, 0.35), align=(:left, :center))
+    end
+    # the point that is not an entropy vector, on the same slice
+    if outside !== nothing && outside[3] > 0
+        spot = Point2f(outside[1] / outside[3], outside[2] / outside[3])
+        scatter!(ax2, [spot]; markersize=13, color=RGBf(0.75, 0.22, 0.17),
+                 marker=:xcross)
+        # keep the label inside the axis whichever side the point lands on
+        right = spot[1] > 0.7
+        text!(ax2, spot; text=right ? "outside  " : "  outside",
+              fontsize=fontsize - 3, color=RGBf(0.75, 0.22, 0.17),
+              align=(right ? :right : :left, :center))
+    end
+    limits!(ax2, -0.25, 1.45, -0.18, 1.3)
+    hidespines!(ax2, :t, :r)
     return fig
 end
 

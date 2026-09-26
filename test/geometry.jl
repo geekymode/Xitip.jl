@@ -38,6 +38,27 @@ end
     cloud = entropic_samples(3; count=20, alphabet=3, normalize=false, rng=rng)
     @test all(cloud[end, :] .<= 3 * log2(3) + 1e-9)
     @test_throws XitipError entropic_samples(0)
+    @test_throws XitipError entropic_samples(2; style=:uniform)
+end
+
+@testset "structured sampling reaches across the cone" begin
+    # a joint distribution drawn outright is nearly always close to
+    # independent, so it sits against the I(X;Y) = 0 facet and leaves the
+    # rest of the cone empty; the structured sampler is what fills it
+    names = ["X", "Y"]
+    spread(style) = begin
+        cloud = entropic_samples(2; count=400, alphabet=3, style=style,
+                                 rng=MersenneTwister(5))
+        dependent = count(j -> evaluate("I(X;Y)", names, cloud[:, j]) > 0.5,
+                          axes(cloud, 2))
+        lopsided = count(j -> cloud[1, j] < 0.5 || cloud[2, j] < 0.5,
+                         axes(cloud, 2))
+        (dependent, lopsided) ./ Base.size(cloud, 2)
+    end
+    structured, random = spread(:structured), spread(:random)
+    @test structured[1] > 2 * random[1]          # strongly dependent samples
+    @test structured[2] > 2 * random[2]          # samples near a lone ray
+    @test random[1] < 0.1                        # the pile-up being fixed
 end
 
 @testset "evaluating expressions at a point" begin

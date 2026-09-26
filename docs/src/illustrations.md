@@ -161,26 +161,93 @@ plot_proof_tree(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
 An entropy vector of ``n`` random variables is a point of ``\mathbb{R}^{2^n-1}``,
 one coordinate per non-empty subset. The elemental inequalities cut a cone out
 of that space, and every vector that comes from an actual distribution lies
-inside it.
+inside it. Proving a statement is asking whether a half space contains that
+cone; a counterexample is a point of the cone outside the half space.
+
+### The cone for two variables
 
 For two variables the space is three-dimensional — ``H(X)``, ``H(Y)``,
-``H(X,Y)`` — and the cone can be drawn exactly. It has one facet per elemental
-inequality, and the three meet along three extreme rays, each of which is a
-recognisable distribution:
+``H(X,Y)`` — so the cone can be drawn exactly:
 
 ```@example plots
-plot_entropy_cone(; outside=(0.9, 0.9, 0.4))
+plot_entropy_cone(; outside=(0.8, 0.5, 0.6))
 ```
 
-The green points are entropy vectors of random distributions, which must lie
-inside. The cross is `(0.9, 0.9, 0.4)`, which is not an entropy vector of
-anything: it claims `H(X,Y) = 0.4` while `H(X) = 0.9`, so `H(Y|X) < 0`.
+**Why it is a cone.** The three elemental inequalities
 
-Past two variables the space is too big to draw — seven dimensions for three
-variables, fifteen for four — so [`plot_entropy_space`](@ref) samples entropy
-vectors, normalises them by their joint entropy so they land on one slice, and
-projects the result onto its two principal directions. Colouring by an
-expression shows where in the cloud that expression changes sign:
+```math
+H(X \mid Y) \ge 0, \qquad H(Y \mid X) \ge 0, \qquad I(X;Y) \ge 0
+```
+
+are all homogeneous — no constant term — so if a point satisfies them, so does
+every positive multiple of it. The region is therefore closed under scaling:
+it is an infinite cone with its apex at the origin, where all three entropies
+vanish. The upper panel truncates it at ``H(X,Y) = 1`` purely so there is
+something finite to draw.
+
+**Its three facets** are the three inequalities, one each, drawn as the three
+flat faces. A point on a facet is a distribution making that inequality tight:
+on ``H(X \mid Y) = 0``, ``X`` is a function of ``Y``; on ``I(X;Y) = 0``, the
+two are independent.
+
+**Its three extreme rays** are where two facets meet, and each is a
+recognisable distribution — ``X`` constant, ``Y`` constant, and ``X = Y``.
+Every point of the cone is a non-negative combination of those three, which is
+[`cone_rays`](@ref). That is the geometric form of the same fact the prover
+uses: a Shannon-type inequality is one that holds at all three rays.
+
+**The slice is the clean view.** The lower panel is the cone cut at
+``H(X,Y) = 1``, i.e. every point divided by its joint entropy. Scaling is the
+one direction that carries no information, so throwing it away loses nothing
+and turns the cone into a plain triangle with the three rays as its corners
+and the three facets as its edges. If the three-dimensional picture is hard to
+read, read the triangle instead — it is the same object with a degree of
+freedom removed. `azimuth` and `elevation` rotate the upper panel if a
+different angle suits, and `slice=false` drops the lower one.
+
+The red cross is `(0.8, 0.5, 0.6)`, which is not an entropy vector of
+anything: it claims ``H(X,Y) = 0.6`` while ``H(X) = 0.8``, so
+``H(X \mid Y) < 0``. In the triangle it lands outside the right edge, which is
+the facet it breaks.
+
+### Where random distributions land
+
+The green points are entropy vectors of distributions drawn at random, and
+they are worth a second look, because which distributions you draw decides
+what you see:
+
+```@example plots
+using Random: MersenneTwister
+names = ["X", "Y"]
+fractions(style) = begin
+    cloud = entropic_samples(2; count=2000, alphabet=3, style=style,
+                             rng=MersenneTwister(1))
+    (dependent = count(j -> evaluate("I(X;Y)", names, cloud[:, j]) > 0.5,
+                       axes(cloud, 2)) / 2000,
+     lopsided = count(j -> cloud[1, j] < 0.5, axes(cloud, 2)) / 2000)
+end
+(structured = fractions(:structured), random = fractions(:random))
+```
+
+Drawing the joint distribution outright — `style=:random` — gives something
+close to independent almost every time, so the samples pile up against the
+``I(X;Y) = 0`` edge and leave most of the triangle empty. This is a fact about
+the sampler, not about the cone: the rest of the triangle is perfectly
+reachable, it is just that a distribution picked with no structure rarely has
+much mutual information.
+
+So [`entropic_samples`](@ref) defaults to `style=:structured`, which gives each
+variable a parent among the earlier ones and a noise level, sweeping from "one
+is a function of the other" to "independent" and reaching across the cone. Pass
+`style=:random` to see the pile-up for yourself.
+
+### More than two variables
+
+Past two variables the space is too big to draw — seven dimensions for three,
+fifteen for four — so [`plot_entropy_space`](@ref) samples entropy vectors,
+normalises them by their joint entropy so they land on one slice, and projects
+the result onto its two principal directions. Colouring by an expression shows
+where in the cloud that expression changes sign:
 
 ```@example plots
 plot_entropy_space(3; color="I(X;Y;Z)")

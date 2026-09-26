@@ -42,37 +42,79 @@ function entropy_vector(p::AbstractVector{<:Real}, n::Int, alphabet::Int)
 end
 
 """
-    entropic_samples(n; count=400, alphabet=2, concentration=0.6, rng, normalize=true)
+    entropic_samples(n; count=400, alphabet=2, style=:structured, rng, normalize=true)
 
 Entropy vectors of `count` random distributions over `n` random variables,
 as the columns of a matrix. Every column is a point the Shannon cone must
 contain, since it comes from an actual distribution.
 
-`concentration` shapes the distributions: values below 1 favour peaked ones
-and so spread the samples through the cone, rather than piling them up near
-the uniform distribution. With `normalize`, each column is divided by its
-joint entropy, which puts the samples on one slice of the cone instead of
-along the rays through it.
+Two ways of drawing the distributions:
+
+* `:structured` (the default) gives each variable a parent among the
+  earlier ones and a noise level, so a sample runs from one variable being
+  a function of another to the two being independent. This reaches across
+  the cone.
+* `:random` draws the joint distribution outright. Such a distribution is
+  nearly always close to independent, so these samples pile up against the
+  facet where the mutual information vanishes and leave most of the cone
+  empty — which is worth seeing once, and is why it is not the default.
+
+With `normalize`, each column is divided by its joint entropy, which puts
+the samples on one slice of the cone rather than along the rays through it.
 """
 function entropic_samples(n::Int; count::Int=400, alphabet::Int=2,
-                          concentration::Real=0.6,
+                          style::Symbol=:structured, concentration::Real=0.6,
                           rng::AbstractRNG=Random.default_rng(),
                           normalize::Bool=true)
     n < 1 && throw(XitipError("need at least one variable"))
+    style in (:structured, :random) ||
+        throw(XitipError("style must be :structured or :random"))
     full = (1 << n) - 1
     out = zeros(Float64, full, count)
     for j in 1:count
-        # a Dirichlet-ish draw: powers of uniforms, which concentrate the
-        # mass on fewer outcomes as the exponent shrinks. The exponent
-        # itself varies from sample to sample, so the points spread through
-        # the cone instead of gathering where one peakedness puts them.
-        shape = clamp(concentration * exp(randn(rng)), 0.05, 20.0)
-        p = rand(rng, alphabet^n) .^ (1 / shape)
+        p = style === :structured ?
+            structured_distribution(n, alphabet, rng) :
+            rand(rng, alphabet^n) .^
+                (1 / clamp(concentration * exp(randn(rng)), 0.05, 20.0))
         h = entropy_vector(p, n, alphabet)
         normalize && h[full] > 0 && (h ./= h[full])
         out[:, j] = h
     end
     return out
+end
+
+"""
+A joint distribution with a dependence structure drawn at random: each
+variable either stands on its own or follows one of the earlier ones
+through a random relabelling, corrupted with probability `noise`. Sweeping
+the noise takes a pair from "one is a function of the other" to "the two
+are independent", which is what carries the samples across the cone.
+"""
+function structured_distribution(n::Int, alphabet::Int, rng::AbstractRNG)
+    parents = [i == 1 ? 0 : rand(rng, 0:i-1) for i in 1:n]
+    noise = [rand(rng)^2 for _ in 1:n]          # favour strong dependence
+    relabel = [Random.shuffle(rng, 0:alphabet-1) for _ in 1:n]
+    own = map(1:n) do _
+        weights = rand(rng, alphabet) .^
+                  (1 / clamp(exp(randn(rng)), 0.1, 10.0))
+        weights ./ sum(weights)
+    end
+    p = zeros(Float64, alphabet^n)
+    for outcome in 0:alphabet^n - 1
+        x = digits(outcome; base=alphabet, pad=n)
+        probability = 1.0
+        for i in 1:n
+            if parents[i] == 0
+                probability *= own[i][x[i] + 1]
+            else
+                target = relabel[i][x[parents[i]] + 1]
+                probability *= (1 - noise[i]) * (x[i] == target) +
+                               noise[i] * own[i][x[i] + 1]
+            end
+        end
+        p[outcome + 1] = probability
+    end
+    return p
 end
 
 """
@@ -185,13 +227,21 @@ end
 
 Draw the Shannon cone for two random variables, which lives in the three
 dimensions `(H(X), H(Y), H(X,Y))`: three facets, one per elemental
-inequality, meeting along three extreme rays.
+inequality, meeting along three extreme rays — `X` constant, `Y` constant
+and `X = Y`.
+
+The cone is infinite, since the inequalities are homogeneous, so the drawing
+truncates it at `H(X,Y) = reach`. A second panel shows that same slice
+head on, where the cone is a triangle with the rays as its corners; this is
+usually the easier of the two to read.
 
 $PLOT_HINT
 
 Keywords: `samples` scatters that many entropy vectors of random
 distributions inside the cone, `outside` marks a point that breaks one of
-the inequalities, `alphabet`, `size`, `fontsize`.
+the inequalities and shows where it lands on the slice, `slice` draws the
+second panel, `azimuth` and `elevation` rotate the cone, `reach` is where
+it is cut off, plus `alphabet`, `size` and `fontsize`.
 """
 plot_entropy_cone(::Any...; kw...) = throw(XitipError(PLOT_HINT))
 
