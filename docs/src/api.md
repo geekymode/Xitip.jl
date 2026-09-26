@@ -58,6 +58,7 @@ plot_counterexample
 entropy_vector
 entropic_samples
 entropic_distribution
+distribution_families
 imeasure
 shared_slice
 shared_cone_vertices

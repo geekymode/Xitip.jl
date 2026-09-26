@@ -58,12 +58,14 @@ Two ways of drawing the distributions:
   nearly always close to independent, so these samples pile up against the
   facet where the mutual information vanishes and leave most of the cone
   empty — which is worth seeing once, and is why it is not the default.
-* `:uniform` works backwards, for two variables only: it picks a point of
+* `:cover` works backwards, for two variables only: it picks a point of
   the cone uniformly and builds a distribution with exactly those
   entropies, through [`entropic_distribution`](@ref). This is the only
   style that covers the cone evenly, since it does not sample
   distributions at all; `alphabet` is then whatever the construction
-  needs.
+  needs. Note that this is uniform over *the cone*, not over anything to
+  do with the distributions: none of the styles makes `X` or `Y` uniformly
+  distributed. `:uniform` is accepted as an older name for it.
 
 With `normalize`, each column is divided by its joint entropy, which puts
 the samples on one slice of the cone rather than along the rays through it.
@@ -73,15 +75,16 @@ function entropic_samples(n::Int; count::Int=400, alphabet::Int=2,
                           rng::AbstractRNG=Random.default_rng(),
                           normalize::Bool=true)
     n < 1 && throw(XitipError("need at least one variable"))
-    style in (:structured, :random, :uniform) ||
-        throw(XitipError("style must be :structured, :random or :uniform"))
-    style === :uniform && n != 2 &&
+    style === :uniform && (style = :cover)          # the name it used to have
+    style in (:structured, :random, :cover) ||
+        throw(XitipError("style must be :structured, :random or :cover"))
+    style === :cover && n != 2 &&
         throw(XitipError("uniform sampling of the cone is only available " *
                          "for two variables"))
     full = (1 << n) - 1
     out = zeros(Float64, full, count)
     for j in 1:count
-        if style === :uniform
+        if style === :cover
             out[:, j] = uniform_cone_point(rng, normalize)
             continue
         end
@@ -469,6 +472,119 @@ function relation_coefficients(statement::AbstractString,
         add_term!(coefs, index, term, -flip)
     end
     return filter(kv -> !iszero(kv.second), coefs)
+end
+
+"""
+    distribution_families(n; steps=41) -> Vector{Pair{String,Matrix{Float64}}}
+
+Familiar families of distributions over `n = 2` or `3` random variables,
+each as a curve of entropy vectors: the columns of the matrix are the
+entropy vectors as the family's parameter is swept from one end to the
+other. Drawing these inside the cone shows that a family is not scattered
+through it but follows a path, and that the paths land on the cone's faces
+for structural reasons.
+
+For two variables the families are channels from `X` to `Y`, all starting
+at `X = Y` when the channel is clean:
+
+* a binary symmetric channel, which keeps `X` and `Y` symmetric and so runs
+  down the middle of the slice;
+* an erasure channel and a Z channel, which do not, and so bend to one
+  side;
+* independent pairs, which lie along the `I(X;Y) = 0` edge by definition;
+* `Y` a function of `X`, which lies along `H(Y|X) = 0` for the same reason.
+
+For three variables:
+
+* a Markov chain `X → Y → Z`, which lies exactly on the facet
+  `I(X;Z|Y) = 0`, that being what the Markov property says;
+* a common cause `Y → (X, Z)`, which lies on `I(X;Z|Y) = 0` as well, since
+  it is the same conditional independence;
+* `Z = X xor Y` through a noisy channel, which stays on the far apex
+  however much noise there is.
+"""
+function distribution_families(n::Int; steps::Int=41)
+    steps >= 2 || throw(XitipError("need at least two steps"))
+    n == 2 && return two_variable_families(steps)
+    n == 3 && return three_variable_families(steps)
+    throw(XitipError("families are listed for two or three variables"))
+end
+
+"""Entropy vectors of a joint distribution built cell by cell."""
+function family(build, steps::Int, n::Int, alphabet::Int)
+    out = zeros(Float64, (1 << n) - 1, steps)
+    for (j, t) in pairs(range(0, 1; length=steps))
+        p = zeros(Float64, alphabet^n)
+        build(p, t)
+        out[:, j] = entropy_vector(p, n, alphabet)
+    end
+    return out
+end
+
+function two_variable_families(steps::Int)
+    at(x, y) = 1 + x + 3y
+    bsc = family(steps, 2, 3) do p, t
+        q = t / 2                                   # crossover, 0 to a half
+        for x in 0:1, y in 0:1
+            p[at(x, y)] = 0.5 * (x == y ? 1 - q : q)
+        end
+    end
+    erasure = family(steps, 2, 3) do p, t
+        for x in 0:1
+            p[at(x, x)] += 0.5 * (1 - t)
+            p[at(x, 2)] += 0.5 * t                  # 2 is the erasure symbol
+        end
+    end
+    zchannel = family(steps, 2, 3) do p, t
+        p[at(0, 0)] = 0.5                           # a zero is never flipped
+        p[at(1, 1)] = 0.5 * (1 - t)
+        p[at(1, 0)] = 0.5 * t
+    end
+    independent = family(steps, 2, 3) do p, t
+        a = 0.5 * (1 - t) + 0.02                    # marginals drift apart
+        b = 0.5 * t + 0.02
+        for x in 0:1, y in 0:1
+            p[at(x, y)] = (x == 0 ? a : 1 - a) * (y == 0 ? b : 1 - b)
+        end
+    end
+    functional = family(steps, 2, 3) do p, t
+        weights = [1 - t / 2, t / 2 + 0.02, t / 3 + 0.02]
+        weights ./= sum(weights)
+        for x in 0:2
+            p[at(x, x % 2)] = weights[x + 1]        # Y = X mod 2
+        end
+    end
+    return ["binary symmetric channel" => bsc,
+            "erasure channel" => erasure,
+            "Z channel" => zchannel,
+            "X and Y independent" => independent,
+            "Y a function of X" => functional]
+end
+
+function three_variable_families(steps::Int)
+    at(x, y, z) = 1 + x + 2y + 4z
+    flip(a, b, q) = a == b ? 1 - q : q
+    markov = family(steps, 3, 2) do p, t
+        q = t / 2
+        for x in 0:1, y in 0:1, z in 0:1
+            p[at(x, y, z)] = 0.5 * flip(y, x, q) * flip(z, y, q)
+        end
+    end
+    common = family(steps, 3, 2) do p, t
+        q = t / 2                                   # Y causes both X and Z,
+        for x in 0:1, y in 0:1, z in 0:1            # through unequal channels
+            p[at(x, y, z)] = 0.5 * flip(x, y, q) * flip(z, y, q / 3)
+        end
+    end
+    parity = family(steps, 3, 2) do p, t
+        q = t / 2
+        for x in 0:1, y in 0:1, z in 0:1
+            p[at(x, y, z)] = 0.25 * flip(z, xor(x, y), q)
+        end
+    end
+    return ["Markov chain X -> Y -> Z" => markov,
+            "common cause Y -> (X, Z)" => common,
+            "Z = X xor Y, noisy" => parity]
 end
 
 """

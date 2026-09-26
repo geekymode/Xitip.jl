@@ -16,6 +16,10 @@ const BLUE = RGBf(0.20, 0.29, 0.44)
 const GREEN = RGBf(0.16, 0.45, 0.35)
 const RED = RGBf(0.75, 0.22, 0.17)
 const PLUM = RGBf(0.45, 0.18, 0.52)
+# one colour per family of distributions, chosen to stay apart
+const FAMILY = [RGBf(0.85, 0.37, 0.01), RGBf(0.11, 0.42, 0.69),
+                RGBf(0.65, 0.12, 0.45), RGBf(0.20, 0.55, 0.24),
+                RGBf(0.40, 0.30, 0.65)]
 halves(values) = [v ≈ round(2v) / 2 ? string(round(v; digits=2)) : ""
                   for v in values]
 
@@ -385,10 +389,12 @@ function two_variable_cone(; samples::Int=400, alphabet::Int=3,
                                  outside=nothing, size=(660, 860),
                                  fontsize::Real=13, reach::Real=1.0,
                                  style::Symbol=:structured,
+                                 families::Bool=false,
                                  azimuth::Real=1.32pi, elevation::Real=0.16pi,
                                  slice::Bool=true,
                                  rng::AbstractRNG=Random.default_rng())
     rays = Xitip.cone_rays(2)
+    families && (samples = 0)          # the curves are the point of the figure
     # the slice wants them normalised; the cone itself reads better with
     # them spread through its volume, which is what they are
     cloud = samples > 0 ?
@@ -456,6 +462,16 @@ function two_variable_cone(; samples::Int=400, alphabet::Int=3,
                  color=RGBf(0.75, 0.22, 0.17), marker=:xcross,
                  label="outside the cone")
     end
+    curves = families ? Xitip.distribution_families(2) : []
+    if families
+        # the families at their own scale, so they run through the cone
+        peak = maximum(maximum(curve[3, :]) for (_, curve) in curves)
+        for (k, (name, curve)) in pairs(curves)
+            lines!(ax, [Point3f((reach / peak) .* curve[:, j]...)
+                        for j in axes(curve, 2)];
+                   color=FAMILY[mod1(k, length(FAMILY))], linewidth=2.5)
+        end
+    end
     (!isempty(cloud) || outside !== nothing) &&
         Legend(fig[2, 1], ax; orientation=:horizontal, framevisible=false,
                labelsize=fontsize - 2, padding=(0, 0, 0, 0))
@@ -502,6 +518,23 @@ function two_variable_cone(; samples::Int=400, alphabet::Int=3,
         text!(ax2, spot; text=right ? "outside  " : "  outside",
               fontsize=fontsize - 3, color=RGBf(0.75, 0.22, 0.17),
               align=(right ? :right : :left, :center))
+    end
+    if families
+        entries, labels = Any[], String[]
+        for (k, (name, curve)) in pairs(curves)
+            colour = FAMILY[mod1(k, length(FAMILY))]
+            points = [Point2f(curve[1, j] / curve[3, j],
+                              curve[2, j] / curve[3, j])
+                      for j in axes(curve, 2) if curve[3, j] > 1e-9]
+            lines!(ax2, points; color=colour, linewidth=2.5)
+            scatter!(ax2, points[end:end]; color=colour, markersize=8)
+            push!(entries, LineElement(color=colour, linewidth=2.5))
+            push!(labels, name)
+        end
+        # row 2 is free, the sample legend not being drawn alongside families
+        Legend(fig[2, 1], entries, labels; orientation=:horizontal, nbanks=2,
+               framevisible=false, labelsize=fontsize - 3,
+               padding=(0, 0, 0, 0))
     end
     limits!(ax2, -0.25, 1.45, -0.18, 1.3)
     hidespines!(ax2, :t, :r)
@@ -583,7 +616,7 @@ triangular bipyramid whose equator is `I(X;Y;Z) = 0`.
 """
 function three_variable_cone(; samples::Int=600, alphabet::Int=2,
                              cut::Union{AbstractString,Nothing}=nothing,
-                             facets::Bool=true,
+                             facets::Bool=true, families::Bool=false,
                              size=(720, 760), fontsize::Real=13,
                              azimuth::Real=1.33pi, elevation::Real=0.28pi,
                              rng::AbstractRNG=Random.default_rng())
@@ -613,6 +646,8 @@ function three_variable_cone(; samples::Int=600, alphabet::Int=2,
                xgridcolor=GRID, ygridcolor=GRID, zgridcolor=GRID,
                azimuth=azimuth, elevation=elevation, protrusions=32)
 
+    family_entries, family_labels = Any[], String[]
+
     # every facet of the body is one elemental inequality made an equation
     for (corners, name) in Xitip.shared_cone_facets()
         upper = 1 in corners
@@ -634,7 +669,32 @@ function three_variable_cone(; samples::Int=600, alphabet::Int=2,
                linestyle=:dash)
     end
 
-    if samples > 0 && cut === nothing
+    if families
+        for (k, (name, curve)) in pairs(Xitip.distribution_families(3))
+            colour = FAMILY[mod1(k, length(FAMILY))]
+            points = Point3f[]
+            for j in axes(curve, 2)
+                place = Xitip.shared_slice(curve[:, j])
+                place === nothing || push!(points, Point3f(place[1]...))
+            end
+            isempty(points) && continue
+            # a family that does not move is a point, not a curve
+            spread = maximum(maximum(abs, p - points[1]) for p in points)
+            if spread < 1e-6
+                scatter!(ax, points[1:1]; color=colour, markersize=15,
+                         marker=:star5)
+                push!(family_entries,
+                      MarkerElement(color=colour, marker=:star5, markersize=13))
+            else
+                lines!(ax, points; color=colour, linewidth=3)
+                scatter!(ax, points[end:end]; color=colour, markersize=9)
+                push!(family_entries, LineElement(color=colour, linewidth=3))
+            end
+            push!(family_labels, name)
+        end
+    end
+
+    if samples > 0 && cut === nothing && !families
         cloud = Xitip.entropic_samples(3; count=samples, alphabet=alphabet,
                                        normalize=false, rng=rng)
         points, colours = Point3f[], RGBAf[]
@@ -675,8 +735,8 @@ function three_variable_cone(; samples::Int=600, alphabet::Int=2,
               align=(k == 2 ? :right : :left, k == 1 ? :top : :bottom))
     end
 
-    entries, labels = Any[], String[]
-    if cut === nothing
+    entries, labels = family_entries, family_labels
+    if cut === nothing && !families
         append!(entries,
                 [MarkerElement(color=(BLUE, 0.6), marker=:rect, markersize=13),
                  MarkerElement(color=(RED, 0.6), marker=:rect, markersize=13),

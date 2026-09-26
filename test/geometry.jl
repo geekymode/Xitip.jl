@@ -283,6 +283,57 @@ end
     @test_throws XitipError shared_coefficients("I(X;Y) >= 0", ["X", "Y"])
 end
 
+@testset "families of distributions" begin
+    # two variables: every family starts at X = Y when the channel is clean
+    for (name, curve) in distribution_families(2)
+        @test size(curve, 1) == 3
+        for j in axes(curve, 2)                     # all inside the cone
+            for g in Xitip.elemental_inequalities(2)
+                @test sum(Float64(v) * curve[k, j] for (k, v) in g.a) > -1e-9
+            end
+        end
+    end
+    named = Dict(distribution_families(2))
+    # a symmetric channel keeps H(X) = H(Y), so it runs down the middle
+    bsc = named["binary symmetric channel"]
+    @test all(bsc[1, j] ≈ bsc[2, j] for j in axes(bsc, 2))
+    @test bsc[:, 1] ≈ [1, 1, 1]                     # clean: X = Y
+    @test bsc[3, end] ≈ 2                           # useless: independent bits
+    # independence and functions lie on the faces that define them
+    indep = named["X and Y independent"]
+    @test all(isapprox(evaluate("I(X;Y)", indep[:, j]), 0; atol=1e-9)
+              for j in axes(indep, 2))
+    fn = named["Y a function of X"]
+    @test all(isapprox(evaluate("H(Y|X)", fn[:, j]), 0; atol=1e-9)
+              for j in axes(fn, 2))
+    # the asymmetric channels are asymmetric
+    for key in ("erasure channel", "Z channel")
+        curve = named[key]
+        @test any(!isapprox(curve[1, j], curve[2, j]) for j in axes(curve, 2))
+    end
+
+    # three variables: a Markov chain lies exactly on one facet
+    named = Dict(distribution_families(3))
+    for key in ("Markov chain X -> Y -> Z", "common cause Y -> (X, Z)")
+        curve = named[key]
+        for j in axes(curve, 2)
+            @test isapprox(evaluate("I(X;Z|Y)", curve[:, j]), 0; atol=1e-9)
+        end
+    end
+    # and that facet is the one the picture labels
+    @test ([1, 2, 4] => "I(X;Z|Y) = 0") in shared_cone_facets()
+    # the noisy parity family never leaves the far apex
+    parity = named["Z = X xor Y, noisy"]
+    for j in 1:size(parity, 2) - 1                  # the last step is all noise
+        b, c = shared_slice(parity[:, j])
+        @test b ≈ [0.5, 0.5, 0.5]
+        @test c ≈ -0.5
+    end
+
+    @test_throws XitipError distribution_families(4)
+    @test_throws XitipError distribution_families(2; steps=1)
+end
+
 @testset "geometry plots need the extension" begin
     for call in (() -> plot_entropy_cone(),
                  () -> plot_entropy_cone(3),

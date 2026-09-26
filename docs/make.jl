@@ -14,6 +14,7 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
+        "Xitip foundations" => "foundations.md",
         "Expression syntax" => "syntax.md",
         "Proofs and counterexamples" => "proofs.md",
         "Examples" => "examples.md",

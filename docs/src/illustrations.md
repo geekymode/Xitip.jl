@@ -428,6 +428,59 @@ negative the statement already fails by raising that private entropy alone,
 and the picture cannot show it; the figure says so rather than misleading
 you.
 
+### Where familiar distributions sit
+
+A family of distributions is not scattered through the cone: it traces a
+path, and where that path runs says something about the family.
+[`distribution_families`](@ref) gives several, and `families = true` draws
+them.
+
+```@example plots
+plot_entropy_cone(2; families = true, size = (700, 900))
+```
+
+Every channel starts at the `X = Y` corner, where it is clean, and ends
+somewhere on the boundary as it degrades:
+
+* the **binary symmetric channel** keeps `H(X) = H(Y)`, so it runs straight
+  down the middle of the triangle and ends at the midpoint of the
+  independence edge — a useless symmetric channel leaves two independent
+  fair bits;
+* the **erasure** and **Z channels** are asymmetric, so they bend to one
+  side and end at the `Y constant` corner;
+* **independent pairs** lie along the `I(X;Y) = 0` edge, and **`Y` a
+  function of `X`** along `H(Y|X) = 0`, in both cases because that is what
+  the words mean.
+
+For three variables the effect is sharper:
+
+```@example plots
+plot_entropy_cone(3; families = true)
+```
+
+A **Markov chain** `X → Y → Z` says `I(X;Z|Y) = 0`, and that is one of the
+six facets — so every Markov chain lies exactly on a face of the cone, never
+inside it. A **common cause** `Y → (X, Z)` is the same conditional
+independence, so it lies on the same facet by a different route. The
+**noisy parity** family does not move at all: it stays on the far apex for
+every noise level, because the three conditional informations stay equal and
+the normalisation divides out the scale.
+
+This is also the answer to what the sampling styles are. None of them makes
+`X` or `Y` uniformly distributed — `style = :cover` means uniform over *the
+cone*, picking an entropy point and building a distribution for it. The
+styles are:
+
+| style | what it draws |
+|---|---|
+| `:structured` (default) | a random dependency structure: each variable follows an earlier one through a random relabelling, at a random noise level |
+| `:random` | the joint distribution outright, which is nearly always close to independent |
+| `:cover` | not a distribution at all — a point of the cone, uniformly, realised by [`entropic_distribution`](@ref) |
+
+`alphabet` sets how many values each variable takes. For anything else, build
+the distribution yourself and call [`entropy_vector`](@ref) on it; that is all
+the samplers do.
+
 ### More than three variables
 
 Past three variables the space is too big to draw — fifteen dimensions for
