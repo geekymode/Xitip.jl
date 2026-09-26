@@ -281,13 +281,43 @@ second.
 
 ## Further reading
 
+### The theory
+
 * R. W. Yeung, *Information Theory and Network Coding*, Springer 2008 — the
   I-measure, the elemental inequalities, and the framework this package
   implements.
 * R. W. Yeung, "A framework for linear information inequalities", *IEEE
-  Trans. Inform. Theory* 43(6), 1997.
+  Transactions on Information Theory* 43(6):1924–1934, 1997 — the linear
+  programming formulation that every prover in this family, including this
+  one, is built on.
 * Z. Zhang and R. W. Yeung, "On characterization of entropy function via
-  information inequalities", *IEEE Trans. Inform. Theory* 44(4), 1998 — the
-  first non-Shannon-type inequality.
-* R. W. Yeung and Y.-O. Yan, ITIP; T. Gläßle, Citip — the earlier
-  implementations this package follows.
+  information inequalities", *IEEE Transactions on Information Theory*
+  44(4):1440–1452, 1998 — the first non-Shannon-type inequality, and the
+  reason this package says "not provable" rather than "false".
+
+### Xitip, and the tools this follows
+
+The name and the grammar come from **Xitip**, written at EPFL:
+
+* R. Pulikkoonattu, E. Perron and S. Diggavi, *Xitip — Information
+  Theoretic Inequalities Prover*, Information Processing Group (LICOS),
+  École Polytechnique Fédérale de Lausanne, Switzerland, 2007–2008.
+  <https://xitip.epfl.ch/>
+* The detailed technical report accompanying it:
+  <https://xitip.epfl.ch/report_xitip_epfl_2008_jan.pdf>
+
+Xitip is itself an adaptation of **ITIP** by *Raymond W. Yeung* and
+*Ying-On Yan*, which introduced the approach; it added a parser, a
+graphical front end and the constraint syntax this package still uses, and
+solved its linear programs with the QSopt library.
+
+The line continues through **Citip**, the C++ command line fork by *Thomas
+Gläßle* (<https://github.com/coldfix/Citip>), and **oXitip**, the web
+version (<https://www.oxitip.com/>).
+
+This package is a reimplementation in Julia rather than a port. It keeps
+the grammar and the semantics, and differs in what is underneath: no
+external linear programming library, the decision made by projection onto
+the cone rather than by simplex, and every certificate verified in exact
+rational arithmetic before it is returned. See [How it works](@ref) for the
+implementation and the [home page](index.md) for the credits in full.
