@@ -32,7 +32,7 @@ julia> using Pkg; Pkg.develop(path="/path/to/Xitip.jl")
 ```
 
 There are no dependencies beyond the standard library. `Project.toml` declares
-Julia 1.6 and later.
+Julia 1.9 and later.
 
 ## Quick start
 

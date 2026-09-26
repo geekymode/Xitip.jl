@@ -36,8 +36,9 @@ It has no dependencies beyond the standard library. Plotting is optional: a
 package extension adds it when CairoMakie, GraphMakie, Graphs and
 NetworkLayout are loaded, see the
 [Illustrations](https://geekymode.github.io/Xitip.jl/dev/illustrations/) page. `Project.toml` declares
-Julia 1.6 and later; it has only been run here on 1.13, and the CI workflow
-covers 1.6, 1.10 and the current release.
+Julia 1.9 and later, that being the oldest release with package extensions,
+which the plotting support is built on. It has only been run here on 1.13;
+the CI workflow covers 1.9, 1.10 and the current release.
 
 ## Quick start
 

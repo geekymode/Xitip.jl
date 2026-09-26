@@ -17,13 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.6', '1.10', '1']
+        # 1.9 is the oldest that understands package extensions, which the
+        # plotting support is built on
+        julia-version: ['1.9', '1.10', '1']
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        exclude:
-          # macOS runners are Apple Silicon, and Julia 1.6 has no build for
-          # that platform; 1.6 is still covered on Linux and Windows
-          - julia-version: '1.6'
-            os: macOS-latest
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
