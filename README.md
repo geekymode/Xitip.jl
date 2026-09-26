@@ -307,7 +307,7 @@ with a handful of constraints.
 $ julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-5414 checks covering the parser, known Shannon and non-Shannon results,
+11436 checks covering the parser, known Shannon and non-Shannon results,
 constraints, the certificate checks (including rejection of wrong
 certificates), the command line interface, and randomized problems that are
 cross-checked against the simplex method and against entropies of random
@@ -321,7 +321,53 @@ Where a TeX installation is available, the generated LaTeX is compiled with
 Xitip was written by *Rethna Pulikkoonattu*, *Etienne Perron* and *Suhas
 Diggavi*; it builds on ITIP by *Raymond W. Yeung* and *Ying-On Yan*. The
 C++ fork Citip, and the updated modular c++ oxitip developed by *Thomas
-Gläßle* and *Nivedita Rethnakar* et. al.
+Gläßle* and *Nivedita Rethnakar* et. al. Full citations are in
+[References](#references) below.
+
+## References
+
+### This package's lineage
+
+Xitip, whose name and grammar this package keeps, was written at the
+Information Processing Group, École Polytechnique Fédérale de Lausanne:
+
+* R. Pulikkoonattu, E. Perron and S. Diggavi, *Xitip: Information-Theoretic
+  Inequality Prover*, EPFL, Switzerland, <http://xitip.epfl.ch>.
+  [Technical report](https://xitip.epfl.ch/report_xitip_epfl_2008_jan.pdf)
+  (January 2008).
+
+Xitip is an adaptation of ITIP, which introduced the approach; it added a
+parser, a graphical front end and the constraint syntax still used here,
+and solved its linear programs with QSopt.
+
+* R. W. Yeung and Y.-O. Yan, *ITIP: Information-Theoretic Inequality
+  Prover*, <http://user-www.ie.cuhk.edu.hk/~ITIP/>.
+
+The line continues through Citip, the C++ command line fork, and oXitip,
+the online version:
+
+* T. Gläßle, *Citip*, <https://github.com/coldfix/Citip>.
+* N. Rethnakar, S. Diggavi, T. Gläßle, E. Perron, R. Pulikkoonattu,
+  R. W. Yeung and Y. Yan, *Online X Information Theoretic Inequalities
+  Prover — oXitip*, <http://www.oxitip.com>, 2020.
+
+### The theory
+
+* R. W. Yeung, "A new outlook on Shannon's information measures", *IEEE
+  Trans. Inform. Theory*, vol. 37, pp. 466–474, May 1991 — the I-measure.
+* R. W. Yeung, "A framework for linear information inequalities", *IEEE
+  Trans. Inform. Theory*, vol. 43, pp. 1924–1934, Nov 1997 — the linear
+  programming formulation this package is built on.
+* Z. Zhang and R. W. Yeung, "A non-Shannon-type conditional inequality of
+  information quantities", *IEEE Trans. Inform. Theory*, vol. 43,
+  pp. 1982–1985, Nov 1997.
+* Z. Zhang and R. W. Yeung, "On the characterization of entropy function
+  via information inequalities", *IEEE Trans. Inform. Theory*, vol. 44,
+  pp. 1440–1452, Jul 1998 — the first non-Shannon-type inequality, and the
+  reason this package reports "not provable" rather than "false".
+* R. W. Yeung, *Information Theory and Network Coding*, Springer, 2008.
+* R. W. Yeung, "Facets of entropy", *Communications in Information and
+  Systems*, vol. 15, no. 1, pp. 87–117, 2015.
 
 ## License
 

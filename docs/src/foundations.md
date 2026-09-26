@@ -283,37 +283,50 @@ second.
 
 ### The theory
 
-* R. W. Yeung, *Information Theory and Network Coding*, Springer 2008 — the
-  I-measure, the elemental inequalities, and the framework this package
-  implements.
+* R. W. Yeung, "A new outlook on Shannon's information measures", *IEEE
+  Transactions on Information Theory*, vol. 37, pp. 466–474, May 1991 — the
+  I-measure, which [`imeasure`](@ref) computes.
 * R. W. Yeung, "A framework for linear information inequalities", *IEEE
-  Transactions on Information Theory* 43(6):1924–1934, 1997 — the linear
-  programming formulation that every prover in this family, including this
-  one, is built on.
-* Z. Zhang and R. W. Yeung, "On characterization of entropy function via
-  information inequalities", *IEEE Transactions on Information Theory*
-  44(4):1440–1452, 1998 — the first non-Shannon-type inequality, and the
-  reason this package says "not provable" rather than "false".
+  Transactions on Information Theory*, vol. 43, pp. 1924–1934, Nov 1997 —
+  the linear programming formulation that every prover in this family,
+  including this one, is built on.
+* Z. Zhang and R. W. Yeung, "A non-Shannon-type conditional inequality of
+  information quantities", *IEEE Transactions on Information Theory*,
+  vol. 43, pp. 1982–1985, Nov 1997.
+* Z. Zhang and R. W. Yeung, "On the characterization of entropy function
+  via information inequalities", *IEEE Transactions on Information Theory*,
+  vol. 44, pp. 1440–1452, Jul 1998 — the first non-Shannon-type inequality,
+  and the reason this package says "not provable" rather than "false".
+* R. W. Yeung, *Information Theory and Network Coding*, Springer, 2008 —
+  the I-measure, the elemental inequalities, and the framework this package
+  implements.
+* R. W. Yeung, "Facets of entropy", *Communications in Information and
+  Systems*, vol. 15, no. 1, pp. 87–117, 2015.
 
 ### Xitip, and the tools this follows
 
 The name and the grammar come from **Xitip**, written at EPFL:
 
-* R. Pulikkoonattu, E. Perron and S. Diggavi, *Xitip — Information
-  Theoretic Inequalities Prover*, Information Processing Group (LICOS),
-  École Polytechnique Fédérale de Lausanne, Switzerland, 2007–2008.
-  <https://xitip.epfl.ch/>
-* The detailed technical report accompanying it:
-  <https://xitip.epfl.ch/report_xitip_epfl_2008_jan.pdf>
+* R. Pulikkoonattu, E. Perron and S. Diggavi, *Xitip:
+  Information-Theoretic Inequality Prover*, Information Processing Group,
+  École Polytechnique Fédérale de Lausanne, Switzerland,
+  <http://xitip.epfl.ch>. The detailed technical report is at
+  <https://xitip.epfl.ch/report_xitip_epfl_2008_jan.pdf> (January 2008).
 
-Xitip is itself an adaptation of **ITIP** by *Raymond W. Yeung* and
-*Ying-On Yan*, which introduced the approach; it added a parser, a
-graphical front end and the constraint syntax this package still uses, and
-solved its linear programs with the QSopt library.
+Xitip is itself an adaptation of **ITIP**, which introduced the approach;
+it added a parser, a graphical front end and the constraint syntax this
+package still uses, and solved its linear programs with the QSopt library.
 
-The line continues through **Citip**, the C++ command line fork by *Thomas
-Gläßle* (<https://github.com/coldfix/Citip>), and **oXitip**, the web
-version (<https://www.oxitip.com/>).
+* R. W. Yeung and Y.-O. Yan, *ITIP: Information-Theoretic Inequality
+  Prover*, <http://user-www.ie.cuhk.edu.hk/~ITIP/>.
+
+The line continues through **Citip**, the C++ command line fork, and
+**oXitip**, the online version:
+
+* T. Gläßle, *Citip*, <https://github.com/coldfix/Citip>.
+* N. Rethnakar, S. Diggavi, T. Gläßle, E. Perron, R. Pulikkoonattu,
+  R. W. Yeung and Y. Yan, *Online X Information Theoretic Inequalities
+  Prover — oXitip*, <http://www.oxitip.com>, 2020.
 
 This package is a reimplementation in Julia rather than a port. It keeps
 the grammar and the semantics, and differs in what is underneath: no
