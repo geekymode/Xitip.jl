@@ -58,6 +58,12 @@ Two ways of drawing the distributions:
   nearly always close to independent, so these samples pile up against the
   facet where the mutual information vanishes and leave most of the cone
   empty — which is worth seeing once, and is why it is not the default.
+* `:uniform` works backwards, for two variables only: it picks a point of
+  the cone uniformly and builds a distribution with exactly those
+  entropies, through [`entropic_distribution`](@ref). This is the only
+  style that covers the cone evenly, since it does not sample
+  distributions at all; `alphabet` is then whatever the construction
+  needs.
 
 With `normalize`, each column is divided by its joint entropy, which puts
 the samples on one slice of the cone rather than along the rays through it.
@@ -67,11 +73,18 @@ function entropic_samples(n::Int; count::Int=400, alphabet::Int=2,
                           rng::AbstractRNG=Random.default_rng(),
                           normalize::Bool=true)
     n < 1 && throw(XitipError("need at least one variable"))
-    style in (:structured, :random) ||
-        throw(XitipError("style must be :structured or :random"))
+    style in (:structured, :random, :uniform) ||
+        throw(XitipError("style must be :structured, :random or :uniform"))
+    style === :uniform && n != 2 &&
+        throw(XitipError("uniform sampling of the cone is only available " *
+                         "for two variables"))
     full = (1 << n) - 1
     out = zeros(Float64, full, count)
     for j in 1:count
+        if style === :uniform
+            out[:, j] = uniform_cone_point(rng, normalize)
+            continue
+        end
         p = style === :structured ?
             structured_distribution(n, alphabet, rng) :
             rand(rng, alphabet^n) .^
@@ -81,6 +94,19 @@ function entropic_samples(n::Int; count::Int=400, alphabet::Int=2,
         out[:, j] = h
     end
     return out
+end
+
+"""
+A point drawn uniformly from the slice of the two-variable cone, scaled to
+fill the cone when `normalize` is off. The point is returned rather than
+the distribution, but a distribution with exactly these entropies exists
+and [`entropic_distribution`](@ref) builds it.
+"""
+function uniform_cone_point(rng::AbstractRNG, normalize::Bool)
+    a, b = rand(rng), rand(rng)
+    a + b < 1 && ((a, b) = (1 - a, 1 - b))      # fold into the triangle
+    scale = normalize ? 1.0 : cbrt(rand(rng))   # spread through the volume
+    return scale .* [a, b, 1.0]
 end
 
 """
@@ -115,6 +141,69 @@ function structured_distribution(n::Int, alphabet::Int, rng::AbstractRNG)
         p[outcome + 1] = probability
     end
     return p
+end
+
+"""
+    marginal_with_entropy(h) -> Vector{Float64}
+
+A probability vector whose entropy is exactly `h` bits. Over `m` symbols
+the family `(1-s, s/(m-1), ..., s/(m-1))` has entropy increasing in `s`
+from 0 to `log2(m)`, so the right `s` is found by bisection.
+"""
+function marginal_with_entropy(h::Real)
+    h <= 0 && return [1.0]
+    m = max(2, ceil(Int, 2.0^h))
+    spread(s) = (q = s / (m - 1);
+                 -(1 - s) * log2(1 - s) - s * log2(q))
+    entropy(s) = s <= 0 ? 0.0 : s >= (m - 1) / m ? log2(m) : spread(s)
+    low, high = 0.0, (m - 1) / m
+    for _ in 1:200                              # bisection on a monotone map
+        mid = (low + high) / 2
+        entropy(mid) < h ? (low = mid) : (high = mid)
+    end
+    s = (low + high) / 2
+    return [1 - s; fill(s / (m - 1), m - 1)]
+end
+
+"""
+    entropic_distribution(h) -> (p, alphabet)
+
+A joint distribution of two random variables whose entropy vector is `h`,
+which must satisfy the elemental inequalities. Every such `h` has one, so
+the Shannon cone for two variables is exactly the set of entropy vectors of
+distributions — nothing in the picture of it is unreachable.
+
+The witness is `X = (U,V)` and `Y = (U,W)` for independent `U, V, W`, which
+gives `I(X;Y) = H(U)`, `H(X|Y) = H(V)` and `H(Y|X) = H(W)`. The three
+elemental inequalities say exactly that those three entropies are
+non-negative, so the construction runs for any point of the cone.
+
+```jldoctest
+julia> p, alphabet = entropic_distribution([0.8, 0.5, 1.0]);
+
+julia> round.(entropy_vector(p, 2, alphabet); digits=6)
+3-element Vector{Float64}:
+ 0.8
+ 0.5
+ 1.0
+```
+"""
+function entropic_distribution(h::AbstractVector{<:Real})
+    length(h) == 3 ||
+        throw(XitipError("the construction is for two variables, so three " *
+                         "entropies: H(X), H(Y), H(X,Y)"))
+    shared, x_only, y_only = h[1] + h[2] - h[3], h[3] - h[2], h[3] - h[1]
+    min(shared, x_only, y_only) < -1e-12 &&
+        throw(XitipError("not in the Shannon cone: $(collect(h))"))
+    u, v, w = marginal_with_entropy.(max.((shared, x_only, y_only), 0))
+    alphabet = max(length(u) * length(v), length(u) * length(w))
+    p = zeros(Float64, alphabet^2)
+    for (i, pu) in pairs(u), (j, pv) in pairs(v), (k, pw) in pairs(w)
+        x = (i - 1) * length(v) + (j - 1)
+        y = (i - 1) * length(w) + (k - 1)
+        p[1 + x + alphabet * y] += pu * pv * pw
+    end
+    return p, alphabet
 end
 
 """
@@ -239,8 +328,9 @@ $PLOT_HINT
 
 Keywords: `samples` scatters that many entropy vectors of random
 distributions inside the cone, `outside` marks a point that breaks one of
-the inequalities and shows where it lands on the slice, `slice` draws the
-second panel, `azimuth` and `elevation` rotate the cone, `reach` is where
+the inequalities and shows where it lands on the slice, `style` is how the
+samples are drawn (see [`entropic_samples`](@ref); `:uniform` covers the
+cone evenly), `slice` draws the second panel, `azimuth` and `elevation` rotate the cone, `reach` is where
 it is cut off, plus `alphabet`, `size` and `fontsize`.
 """
 plot_entropy_cone(::Any...; kw...) = throw(XitipError(PLOT_HINT))

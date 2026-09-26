@@ -57,6 +57,7 @@ plot_counterexample
 ```@docs
 entropy_vector
 entropic_samples
+entropic_distribution
 evaluate
 cone_rays
 plot_entropy_cone

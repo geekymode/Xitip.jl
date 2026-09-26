@@ -241,6 +241,68 @@ variable a parent among the earlier ones and a noise level, sweeping from "one
 is a function of the other" to "independent" and reaching across the cone. Pass
 `style=:random` to see the pile-up for yourself.
 
+### Does the sampling cover everything?
+
+No — and it is worth being precise about why, because two different things
+are going on.
+
+A finite sample never covers a continuum, so the question is really whether
+the samples *spread* over the cone or bunch in part of it. Cut the triangle
+into a 40×40 grid and count how many of its 820 cells hold at least one
+sample:
+
+| samples | cells reached |
+|--------:|--------------:|
+| 400     | 16 % |
+| 4 000   | 43 % |
+| 40 000  | 67 % |
+| 200 000 | 77 % |
+
+More samples do fill it in, but slowly: five hundred times as many samples
+buys 16 % → 77 %. The sampler's measure is very uneven, so the thin regions
+fill at the rate of their probability, not at the rate of the sample count.
+
+The second thing is a real question about the cone rather than the sampler:
+**is every point of the triangle the entropy vector of some distribution?**
+For two variables the answer is yes, and there is a construction. Take
+independent `U`, `V`, `W` and set
+
+```math
+X = (U, V), \qquad Y = (U, W),
+```
+
+which gives ``I(X;Y) = H(U)``, ``H(X \mid Y) = H(V)`` and
+``H(Y \mid X) = H(W)``. The three elemental inequalities say precisely that
+those three entropies are non-negative, so *any* point of the cone can be
+built this way — pick `U`, `V`, `W` with the required entropies and you are
+done. [`entropic_distribution`](@ref) does it:
+
+```@example plots
+h = [0.8, 0.5, 1.0]                    # a point of the cone
+p, alphabet = entropic_distribution(h)
+entropy_vector(p, 2, alphabet)         # exactly the point asked for
+```
+
+So the Shannon cone for two variables is exactly the set of entropy vectors
+— nothing drawn inside it is unreachable. (This is special to two and three
+variables. From four on, the entropic vectors are a strict subset of the
+cone, which is what the note below is about.)
+
+That construction also gives a sampler that covers the cone evenly, by
+working backwards: pick the point first, then build a distribution for it.
+It reaches 99.5 % of the grid cells at 4 000 samples and all of them at
+40 000:
+
+```@example plots
+plot_entropy_cone(; style=:uniform, samples=1200, slice=true)
+```
+
+This is the picture of the cone itself. The default `:structured` picture is
+a picture of *where distributions land* when you draw them, which is a
+different and also useful thing to see — the bunching along the
+``I(X;Y) = 0`` edge is telling you that independence is what you get by
+accident.
+
 ### More than two variables
 
 Past two variables the space is too big to draw — seven dimensions for three,

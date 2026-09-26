@@ -38,7 +38,55 @@ end
     cloud = entropic_samples(3; count=20, alphabet=3, normalize=false, rng=rng)
     @test all(cloud[end, :] .<= 3 * log2(3) + 1e-9)
     @test_throws XitipError entropic_samples(0)
-    @test_throws XitipError entropic_samples(2; style=:uniform)
+    @test_throws XitipError entropic_samples(2; style=:grid)
+    @test_throws XitipError entropic_samples(3; style=:uniform)
+end
+
+@testset "every point of the two-variable cone is entropic" begin
+    rng = MersenneTwister(3)
+    for _ in 1:200
+        a, b = rand(rng), rand(rng)
+        a + b < 1 && ((a, b) = (1 - a, 1 - b))    # fold into the triangle
+        h = [a, b, 1.0] .* (0.2 + 3 * rand(rng))
+        p, alphabet = Xitip.entropic_distribution(h)
+        @test sum(p) ≈ 1
+        @test Xitip.entropy_vector(p, 2, alphabet) ≈ h
+    end
+    # the rays and the apex are the corner cases
+    for (ray, _) in cone_rays(2)
+        p, alphabet = Xitip.entropic_distribution(Float64.(ray))
+        @test Xitip.entropy_vector(p, 2, alphabet) ≈ ray
+    end
+    p, alphabet = Xitip.entropic_distribution([0.0, 0.0, 0.0])
+    @test Xitip.entropy_vector(p, 2, alphabet) ≈ [0, 0, 0]
+
+    @test_throws XitipError Xitip.entropic_distribution([1.0, 1.0])
+    @test_throws XitipError Xitip.entropic_distribution([1.0, 0.2, 0.5])  # H(X|Y)<0
+
+    # a marginal with a prescribed entropy, including past one bit
+    for h in (0.0, 0.3, 1.0, 1.7, 4.5)
+        q = Xitip.marginal_with_entropy(h)
+        @test sum(q) ≈ 1
+        @test -sum(x * log2(x) for x in q if x > 0; init=0.0) ≈ h atol=1e-9
+    end
+
+    # uniform sampling covers the triangle evenly: a region gets the share of
+    # the samples that its share of the area says it should
+    cloud = entropic_samples(2; count=8000, style=:uniform, rng=rng)
+    @test all(≈(1), cloud[3, :])
+    corner(c) = count(j -> c[1, j] > 0.9 && c[2, j] > 0.9, axes(c, 2)) / Base.size(c, 2)
+    edge(c) = count(j -> c[1, j] < 0.15, axes(c, 2)) / Base.size(c, 2)
+    @test corner(cloud) ≈ 0.01 / 0.5 rtol=0.3         # area 0.01 of the 0.5
+    @test edge(cloud) ≈ 0.01125 / 0.5 rtol=0.3        # area 0.01125
+    # and it covers the triangle, which sampling distributions does not:
+    # count how many cells of a grid over the triangle hold a sample
+    cells(c) = Set((clamp(ceil(Int, c[1, j] * 40), 1, 40),
+                    clamp(ceil(Int, c[2, j] * 40), 1, 40)) for j in axes(c, 2))
+    inside = Set((i, j) for i in 1:40, j in 1:40 if (i + j - 1) / 40 >= 1)
+    filled(c) = length(intersect(cells(c), inside)) / length(inside)
+    structured = entropic_samples(2; count=8000, alphabet=3, rng=rng)
+    @test filled(cloud) > 0.99
+    @test filled(structured) < 0.6
 end
 
 @testset "structured sampling reaches across the cone" begin

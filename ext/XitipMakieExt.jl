@@ -368,6 +368,7 @@ inequality, meeting along the three extreme rays.
 function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
                                  outside=nothing, size=(660, 860),
                                  fontsize::Real=13, reach::Real=1.0,
+                                 style::Symbol=:structured,
                                  azimuth::Real=1.32pi, elevation::Real=0.16pi,
                                  slice::Bool=true,
                                  rng::AbstractRNG=Random.default_rng())
@@ -376,11 +377,11 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
     # them spread through its volume, which is what they are
     cloud = samples > 0 ?
             Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
-                                   normalize=true, rng=rng) :
+                                   style=style, normalize=true, rng=rng) :
             zeros(3, 0)
     volume = samples > 0 ?
              Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
-                                    normalize=false, rng=rng) :
+                                    style=style, normalize=false, rng=rng) :
              zeros(3, 0)
     if !isempty(volume)
         peak = maximum(volume[3, :])
@@ -420,7 +421,9 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
     if !isempty(volume)
         scatter!(ax, volume[1, :], volume[2, :], volume[3, :];
                  markersize=4, color=(RGBf(0.16, 0.45, 0.35), 0.45),
-                 label="entropies of random distributions")
+                 label=style === :uniform ?
+                       "points of the cone, each one a distribution" :
+                       "entropies of random distributions")
     end
     if outside !== nothing
         scatter!(ax, [Point3f(Float64.(outside)...)]; markersize=13,
