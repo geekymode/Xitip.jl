@@ -26,19 +26,81 @@ in this package. Two things set it apart from those tools:
 
 ## Installation
 
-The package is not registered. From a local clone:
+Xitip.jl is **not in the General registry**, so `Pkg.add("Xitip")` will not
+find it. Install it from this repository instead:
+
+```julia
+julia> using Pkg; Pkg.add(url="https://github.com/geekymode/Xitip.jl")
+```
+
+or, in the package REPL — press `]` from the Julia prompt:
+
+```
+pkg> add https://github.com/geekymode/Xitip.jl
+```
+
+`rev` pins a branch, tag or commit, which is worth doing while the package
+is unregistered and `main` can move:
+
+```julia
+julia> Pkg.add(url="https://github.com/geekymode/Xitip.jl", rev="main")
+```
+
+Then check it works:
+
+```julia
+julia> using Xitip
+
+julia> prove("I(X;Y) >= 0")
+true
+```
+
+There are no dependencies beyond the standard library, so this pulls in
+nothing else.
+
+### Plotting (optional)
+
+The figures come from a package extension, which loads itself once the
+plotting packages are present. They are not installed with Xitip and are not
+needed unless you want pictures:
+
+```julia
+julia> Pkg.add(["CairoMakie", "GraphMakie", "Graphs", "NetworkLayout"])
+```
+
+```julia
+julia> using Xitip, CairoMakie, GraphMakie, Graphs, NetworkLayout
+
+julia> plot_proof_tree(explain("H(X,Y,Z) <= H(X,Y) + H(Z)"))
+```
+
+Until they are loaded, the plotting functions exist but raise an error
+saying which packages to add. See the
+[Illustrations](https://geekymode.github.io/Xitip.jl/dev/illustrations/)
+page for what they draw.
+
+### The command line tool, and working on the package
+
+`bin/xitip` lives in the repository rather than in the installed package, so
+for that — or to make changes — clone and `develop` instead:
+
+```console
+$ git clone https://github.com/geekymode/Xitip.jl
+$ cd Xitip.jl
+$ julia --project=. -e 'using Pkg; Pkg.instantiate()'
+$ bin/xitip 'I(X;Y|Z) <= I(X;Y)'
+```
 
 ```julia
 julia> using Pkg; Pkg.develop(path="/path/to/Xitip.jl")
 ```
 
-It has no dependencies beyond the standard library. Plotting is optional: a
-package extension adds it when CairoMakie, GraphMakie, Graphs and
-NetworkLayout are loaded, see the
-[Illustrations](https://geekymode.github.io/Xitip.jl/dev/illustrations/) page. `Project.toml` declares
-Julia 1.9 and later, that being the oldest release with package extensions,
-which the plotting support is built on. It has only been run here on 1.13;
-the CI workflow covers 1.9, 1.10 and the current release.
+### Requirements
+
+`Project.toml` declares Julia 1.9 and later, that being the oldest release
+with package extensions, which the plotting support is built on. It has only
+been run here on 1.13; the CI workflow covers 1.9, 1.10 and the current
+release on Linux, macOS and Windows.
 
 ## Quick start
 
