@@ -239,6 +239,50 @@ end
     @test_throws XitipError shared_slice([1.0, 1.0, 2.0])
 end
 
+@testset "the facets are the inequalities" begin
+    V = [v for (v, _) in shared_cone_vertices()]
+    # each facet's inequality is tight exactly on that facet's three vertices
+    for (corners, name) in shared_cone_facets()
+        statement = replace(name, " = 0" => " >= 0")
+        w, private = shared_coefficients(statement)
+        @test all(iszero, private)
+        at(b) = w[1] + sum(w[2:4] .* b)
+        @test all(isapprox(at(V[k]), 0; atol=1e-9) for k in corners)
+        @test all(at(V[k]) > 1e-9 for k in eachindex(V) if !(k in corners))
+    end
+    # six facets, five vertices, so nine edges: Euler holds for the bipyramid
+    edges = Set{Tuple{Int,Int}}()
+    for (corners, _) in shared_cone_facets(), i in corners, j in corners
+        i < j && push!(edges, (i, j))
+    end
+    @test length(edges) == 9
+    @test length(shared_cone_facets()) - length(edges) + length(V) == 2
+end
+
+@testset "a statement is provable when no vertex escapes" begin
+    V = [v for (v, _) in shared_cone_vertices()]
+    holds(statement) = begin
+        w, private = shared_coefficients(statement)
+        all(private .>= -1e-9) &&
+            all(w[1] + sum(w[2:4] .* b) >= -1e-9 for b in V)
+    end
+    # the picture and the prover agree, on statements the slice can see
+    for statement in ("I(X;Y;Z) >= 0", "I(X;Y) <= I(X;Y|Z)",
+                      "I(X;Y|Z) <= I(X;Y)",
+                      "H(X,Y,Z) <= H(X,Y) + H(Z)",
+                      "I(X;Y|Z) >= 0", "I(X;Y) >= 0",
+                      "I(X;Y|Z) + I(X;Z|Y) >= 0",
+                      "I(X;Y) + I(X;Z) >= I(X;Y|Z)",
+                      "2 I(X;Y|Z) >= I(X;Y)")
+        @test holds(statement) == prove(statement)
+    end
+    # a constant term rides along in the same coordinates
+    w, _ = shared_coefficients("I(X;Y;Z) + 1 >= 0")
+    @test w[1] ≈ 1 + 1.0
+    @test_throws XitipError shared_coefficients("X/Y/Z")
+    @test_throws XitipError shared_coefficients("I(X;Y) >= 0", ["X", "Y"])
+end
+
 @testset "geometry plots need the extension" begin
     for call in (() -> plot_entropy_cone(),
                  () -> plot_entropy_cone(3),

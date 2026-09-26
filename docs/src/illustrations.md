@@ -380,6 +380,54 @@ upper half: negative three-way information needs exclusive-or-like structure,
 which a randomly drawn distribution essentially never has — about 4 in 1700
 in the sample above.
 
+### Three variables: where the inequality boundaries are
+
+Every facet of that body is an inequality boundary, and the figure labels
+them. Six of the nine elemental inequalities survive the slice, and each is
+tight on exactly one triangular facet ([`shared_cone_facets`](@ref)):
+
+```@example plots
+shared_cone_facets()
+```
+
+The three facets meeting at the `X = Y = Z` apex are the conditional
+informations `I(X;Y|Z), I(X;Z|Y), I(Y;Z|X) = 0`. The three meeting at the
+exclusive-or apex are the plain ones, `I(X;Y), I(X;Z), I(Y;Z) = 0`. The
+remaining three elemental inequalities, `H(X|Y,Z), H(Y|X,Z), H(Z|X,Y) >= 0`,
+are tight *everywhere* on this picture — they are exactly the directions
+that were dropped, so the whole body lies in their boundary.
+
+A statement about three variables is a half space, so its boundary is a
+plane, and `cut` draws where that plane meets the body. `I(X;Y;Z) >= 0` cuts
+straight through it:
+
+```@example plots
+plot_entropy_cone(3; cut = "I(X;Y;Z) >= 0")
+```
+
+The part below the cut is where the statement fails, and the exclusive-or
+vertex sits in it — that vertex *is* the counterexample the prover returns.
+A statement that is provable does not cut the body at all; it can only
+touch it:
+
+```@example plots
+plot_entropy_cone(3; cut = "H(X,Y,Z) <= H(X,Y) + H(Z)")
+```
+
+This is the whole story of Shannon-type proving in one picture. The body is
+the convex hull of five points, so a statement holds on all of it exactly
+when it holds at those five points — and the package's test suite checks
+that reading against [`prove`](@ref) directly. Where a provable statement
+touches, it touches with equality, and the vertex it touches tells you when
+the inequality is tight: `H(X,Y,Z) <= H(X,Y) + H(Z)` becomes an equality
+exactly when `X = Y` and `Z` is independent of them.
+
+[`shared_coefficients`](@ref) is the conversion behind this, and it also
+reports the coefficients of the three dropped atoms. If one of those is
+negative the statement already fails by raising that private entropy alone,
+and the picture cannot show it; the figure says so rather than misleading
+you.
+
 ### More than three variables
 
 Past three variables the space is too big to draw — fifteen dimensions for

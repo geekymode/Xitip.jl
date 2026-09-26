@@ -9,11 +9,13 @@ using Graphs
 using NetworkLayout: Buchheim, Stress
 import Random
 using Random: AbstractRNG
+using LinearAlgebra: cross, dot, normalize
 
 const GRID = RGBAf(0.55, 0.58, 0.62, 0.45)
 const BLUE = RGBf(0.20, 0.29, 0.44)
 const GREEN = RGBf(0.16, 0.45, 0.35)
 const RED = RGBf(0.75, 0.22, 0.17)
+const PLUM = RGBf(0.45, 0.18, 0.52)
 halves(values) = [v ≈ round(2v) / 2 ? string(round(v; digits=2)) : ""
                   for v in values]
 
@@ -580,16 +582,28 @@ The cone for three variables, in the coordinates where it has a shape: a
 triangular bipyramid whose equator is `I(X;Y;Z) = 0`.
 """
 function three_variable_cone(; samples::Int=600, alphabet::Int=2,
-                             size=(700, 720), fontsize::Real=13,
+                             cut::Union{AbstractString,Nothing}=nothing,
+                             facets::Bool=true,
+                             size=(720, 760), fontsize::Real=13,
                              azimuth::Real=1.33pi, elevation::Real=0.28pi,
                              rng::AbstractRNG=Random.default_rng())
     vertices = Xitip.shared_cone_vertices()
     v = [Point3f(p...) for (p, _) in vertices]
     fig = Figure(; size=size)
+    # worked out before the axis, so the title can say what was found
+    weights = cut === nothing ? nothing : Xitip.shared_coefficients(cut)
+    value(b) = weights[1][1] + sum(weights[1][2:4] .* b)
+    breaks = cut === nothing ? falses(length(v)) :
+             [value(p) < -1e-9 for (p, _) in vertices]
+    touches = cut === nothing ? falses(length(v)) :
+              [abs(value(p)) <= 1e-9 for (p, _) in vertices]
+    title = cut === nothing ?
+            "the Shannon cone for three variables,\nin the shared atoms " *
+            "where it is a bipyramid" :
+            any(breaks) ? "$(cut) cuts the three-variable cone" :
+                          "$(cut) holds on the whole three-variable cone"
     ax = Axis3(fig[1, 1];
-               title="the Shannon cone for three variables,\n" *
-                     "in the shared atoms where it is a bipyramid",
-               titlesize=fontsize + 2,
+               title=title, titlesize=fontsize + 2,
                xlabel="I(X;Y|Z)", ylabel="I(X;Z|Y)", zlabel="I(Y;Z|X)",
                xlabelsize=fontsize, ylabelsize=fontsize, zlabelsize=fontsize,
                xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
@@ -599,24 +613,28 @@ function three_variable_cone(; samples::Int=600, alphabet::Int=2,
                xgridcolor=GRID, ygridcolor=GRID, zgridcolor=GRID,
                azimuth=azimuth, elevation=elevation, protrusions=32)
 
-    # the upper half, I(X;Y;Z) > 0, is the three facets through the apex
-    # where all the shared information is common to all three variables
-    for (apex, faces, colour) in
-            ((1, ((2, 3), (2, 4), (3, 4)), BLUE),
-             (5, ((2, 3), (2, 4), (3, 4)), RED))
-        for (i, j) in faces
-            mesh!(ax, [v[apex], v[i], v[j]], [1 2 3];
-                  color=(colour, 0.16), transparency=true)
-            lines!(ax, [v[apex], v[i], v[j], v[apex]];
-                   color=(colour, 0.85), linewidth=2)
+    # every facet of the body is one elemental inequality made an equation
+    for (corners, name) in Xitip.shared_cone_facets()
+        upper = 1 in corners
+        colour = upper ? BLUE : RED
+        points = v[corners]
+        mesh!(ax, points, [1 2 3]; color=(colour, 0.13), transparency=true)
+        lines!(ax, [points; points[1:1]]; color=(colour, 0.8), linewidth=2)
+        if facets
+            middle = sum(points) / 3
+            text!(ax, middle; text=name, fontsize=fontsize - 4,
+                  color=(colour, 0.95), align=(:center, :center))
         end
     end
-    # the equator is exactly I(X;Y;Z) = 0
-    mesh!(ax, [v[2], v[3], v[4]], [1 2 3]; color=(GREEN, 0.22),
-          transparency=true)
-    lines!(ax, [v[2], v[3], v[4], v[2]]; color=GREEN, linewidth=2.5)
+    # the equator is not a facet: it is the plane where I(X;Y;Z) changes sign
+    if cut === nothing
+        mesh!(ax, [v[2], v[3], v[4]], [1 2 3]; color=(GREEN, 0.20),
+              transparency=true)
+        lines!(ax, [v[2], v[3], v[4], v[2]]; color=GREEN, linewidth=2.5,
+               linestyle=:dash)
+    end
 
-    if samples > 0
+    if samples > 0 && cut === nothing
         cloud = Xitip.entropic_samples(3; count=samples, alphabet=alphabet,
                                        normalize=false, rng=rng)
         points, colours = Point3f[], RGBAf[]
@@ -626,31 +644,86 @@ function three_variable_cone(; samples::Int=600, alphabet::Int=2,
             b, c = slice
             push!(points, Point3f(b...))
             push!(colours, c < -1e-9 ? RGBAf(RED.r, RED.g, RED.b, 0.6) :
-                                       RGBAf(GREEN.r, GREEN.g, GREEN.b, 0.45))
+                                       RGBAf(GREEN.r, GREEN.g, GREEN.b, 0.4))
         end
-        isempty(points) ||
-            scatter!(ax, points; markersize=5, color=colours)
+        isempty(points) || scatter!(ax, points; markersize=5, color=colours)
     end
 
-    # short labels, since the full descriptions do not fit in three dimensions
     short = ["X = Y = Z", "X = Y, Z indep.", "X = Z, Y indep.",
              "Y = Z, X indep.", "Z = X xor Y"]
+    if cut !== nothing
+        private = weights[2]
+        polygon = cut_polygon(v, p -> value([p[1], p[2], p[3]]))
+        if length(polygon) >= 3
+            faces = reduce(vcat, ([1 k k + 1] for k in 2:length(polygon) - 1))
+            mesh!(ax, polygon, faces; color=(PLUM, 0.35), transparency=true)
+            lines!(ax, [polygon; polygon[1:1]]; color=PLUM, linewidth=2.5)
+        end
+        any(private .< -1e-9) &&
+            @warn "the statement falls below zero by raising a private " *
+                  "entropy alone, which this slice does not show"
+    end
+
     for k in eachindex(v)
-        scatter!(ax, [v[k]]; markersize=10, color=k == 5 ? RED : BLUE)
+        colour = breaks[k] ? PLUM : touches[k] ? GREEN : (k == 5 ? RED : BLUE)
+        scatter!(ax, [v[k]];
+                 markersize=breaks[k] ? 14 : touches[k] ? 13 : 10,
+                 color=colour,
+                 marker=breaks[k] ? :diamond : touches[k] ? :rect : :circle)
         text!(ax, v[k]; text=" " * short[k] * " ", fontsize=fontsize - 2,
-              color=k == 5 ? RED : BLUE, font=:bold,
+              color=colour, font=:bold,
               align=(k == 2 ? :right : :left, k == 1 ? :top : :bottom))
     end
 
-    Legend(fig[2, 1],
-           [MarkerElement(color=(BLUE, 0.6), marker=:rect, markersize=13),
-            MarkerElement(color=(GREEN, 0.5), marker=:rect, markersize=13),
-            MarkerElement(color=(RED, 0.6), marker=:rect, markersize=13)],
-           ["I(X;Y;Z) > 0", "I(X;Y;Z) = 0, the equator", "I(X;Y;Z) < 0"];
-           orientation=:horizontal, framevisible=false,
-           labelsize=fontsize - 2, padding=(0, 0, 0, 0))
+    entries, labels = Any[], String[]
+    if cut === nothing
+        append!(entries,
+                [MarkerElement(color=(BLUE, 0.6), marker=:rect, markersize=13),
+                 MarkerElement(color=(RED, 0.6), marker=:rect, markersize=13),
+                 LineElement(color=GREEN, linestyle=:dash, linewidth=2.5)])
+        append!(labels, ["facets through X = Y = Z", "facets through the xor",
+                         "I(X;Y;Z) = 0"])
+    else
+        any(breaks) && (push!(entries, LineElement(color=PLUM, linewidth=2.5));
+                        push!(labels, "where the statement is tight"))
+        any(breaks) &&
+            (push!(entries,
+                   MarkerElement(color=PLUM, marker=:diamond, markersize=12));
+             push!(labels, "vertices it fails at"))
+        any(touches) &&
+            (push!(entries,
+                   MarkerElement(color=GREEN, marker=:rect, markersize=12));
+             push!(labels, "vertices it holds with equality at"))
+        isempty(entries) &&
+            (push!(entries,
+                   MarkerElement(color=BLUE, marker=:circle, markersize=11));
+             push!(labels, "the statement is strict at every vertex"))
+    end
+    Legend(fig[2, 1], entries, labels; orientation=:horizontal,
+           framevisible=false, labelsize=fontsize - 2, padding=(0, 0, 0, 0))
     rowgap!(fig.layout, 4)
     return fig
+end
+
+"""Where a plane crosses the bipyramid: a point on each edge it separates."""
+function cut_polygon(v, at)
+    edges = [(1, 2), (1, 3), (1, 4), (5, 2), (5, 3), (5, 4),
+             (2, 3), (3, 4), (2, 4)]
+    points = Point3f[]
+    for (i, j) in edges
+        a, b = at(v[i]), at(v[j])
+        (a < -1e-12) == (b < -1e-12) && continue
+        abs(a - b) < 1e-12 && continue
+        push!(points, v[i] + Float32(a / (a - b)) * (v[j] - v[i]))
+    end
+    length(points) < 3 && return points
+    # order them around the centroid so the polygon does not self cross
+    middle = sum(points) / length(points)
+    normal = normalize(cross(points[2] - points[1], points[3] - points[1]))
+    axis1 = normalize(points[1] - middle)
+    axis2 = cross(normal, axis1)
+    return sort(points; by=p -> atan(dot(p - middle, axis2),
+                                     dot(p - middle, axis1)))
 end
 
 """Venn diagram of the I-measure, every region carrying its value."""

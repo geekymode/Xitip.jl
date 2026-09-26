@@ -397,6 +397,81 @@ shared_cone_vertices() =
      [0.5, 0.5, 0.5] => "Z = X xor Y"]
 
 """
+    shared_cone_facets() -> Vector{Pair{Vector{Int},String}}
+
+The six facets of the bipyramid [`shared_cone_vertices`](@ref) describes,
+each as the vertices it is spanned by together with the elemental
+inequality that is tight on it. Every facet of the drawn body is one of the
+nine elemental inequalities made an equation; the other three,
+`H(X|Y,Z), H(Y|X,Z), H(Z|X,Y) >= 0`, are tight everywhere on it, since the
+slice is what is left after dropping exactly those directions.
+
+```jldoctest
+julia> [name for (_, name) in shared_cone_facets()]
+6-element Vector{String}:
+ "I(X;Y|Z) = 0"
+ "I(X;Z|Y) = 0"
+ "I(Y;Z|X) = 0"
+ "I(X;Y) = 0"
+ "I(X;Z) = 0"
+ "I(Y;Z) = 0"
+```
+"""
+shared_cone_facets() =
+    [[1, 3, 4] => "I(X;Y|Z) = 0",
+     [1, 2, 4] => "I(X;Z|Y) = 0",
+     [1, 2, 3] => "I(Y;Z|X) = 0",
+     [3, 4, 5] => "I(X;Y) = 0",
+     [2, 4, 5] => "I(X;Z) = 0",
+     [2, 3, 5] => "I(Y;Z) = 0"]
+
+"""
+    shared_coefficients(statement, names=default_names(3)) -> (w, private)
+
+Rewrite a statement about three variables as an affine function of the
+slice coordinates `b = (I(X;Y|Z), I(X;Z|Y), I(Y;Z|X))`: the statement holds
+at a point of the slice exactly when `w[1] + w[2:4]'b >= 0`. `private`
+holds the coefficients of the three private atoms `H(X|Y,Z)`, `H(Y|X,Z)`,
+`H(Z|X,Y)`, which the slice drops.
+
+If those are all non-negative, nothing is lost: raising a private atom only
+raises the left side, so the statement holds on the whole cone exactly when
+it holds on the slice. If one is negative the statement already fails by
+raising that entropy alone, whatever the shared part does.
+"""
+function shared_coefficients(statement::AbstractString,
+                             names::AbstractVector{<:AbstractString}=
+                                 default_names(3))
+    length(names) == 3 || throw(XitipError("this slice is for three variables"))
+    coefs = relation_coefficients(statement, names)
+    # atom S gets every coefficient whose subset it lies inside
+    weight(S) = sum(Float64(c) for (mask, c) in coefs
+                    if mask != 0 && mask & S != 0; init=0.0)
+    constant = Float64(get(coefs, 0, 0))
+    b, c = weight.((3, 5, 6)), weight(7)
+    # on the slice the fourth atom is 1 - sum(b), and the constant rides along
+    return ([constant + c; collect(b) .- c], weight.((1, 2, 4)))
+end
+
+"""Coefficients of a statement with everything moved to the left of `>= 0`."""
+function relation_coefficients(statement::AbstractString,
+                               names::AbstractVector{<:AbstractString})
+    stmt = parse_statement(String(statement))
+    stmt isa Relation ||
+        throw(XitipError("not an inequality: $statement"))
+    index = Dict(String(v) => i for (i, v) in enumerate(names))
+    coefs = Dict{Int,Coef}()
+    flip = stmt.rel === :le ? -1 : 1
+    for term in stmt.left
+        add_term!(coefs, index, term, flip)
+    end
+    for term in stmt.right
+        add_term!(coefs, index, term, -flip)
+    end
+    return filter(kv -> !iszero(kv.second), coefs)
+end
+
+"""
     project(samples, dims=2) -> (coordinates, variance)
 
 Project the columns of `samples` onto their `dims` principal directions,
@@ -445,6 +520,17 @@ bipyramid — drawn exactly, with a distribution named at each of its five
 vertices. Its equator is `I(X;Y;Z) = 0`, so the lower half is precisely
 where three-way mutual information is negative. See
 [`shared_slice`](@ref) and [`shared_cone_vertices`](@ref).
+
+Each of its six facets is one of the six elemental inequalities that
+survive, made an equation, and they are labelled as such. A statement about
+three variables is a half space, so `cut` draws where its boundary meets
+the body: the statement is provable exactly when no vertex of the body
+falls outside, which the figure marks. See [`shared_cone_facets`](@ref) and
+[`shared_coefficients`](@ref).
+
+Keywords for three variables: `cut` is a statement to draw the boundary of,
+`facets` labels the facets, plus `samples`, `alphabet`, `size`, `fontsize`,
+`azimuth`, `elevation`, `rng`.
 
 Keywords for two variables: `samples` scatters that many entropy vectors of random
 distributions inside the cone, `outside` marks a point that breaks one of

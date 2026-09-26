@@ -61,6 +61,8 @@ entropic_distribution
 imeasure
 shared_slice
 shared_cone_vertices
+shared_cone_facets
+shared_coefficients
 evaluate
 cone_rays
 plot_entropy_cone
