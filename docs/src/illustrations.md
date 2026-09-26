@@ -156,6 +156,52 @@ Han's inequality for three variables, whose proof is a chain of three terms:
 plot_proof_tree(explain("2 H(X,Y,Z) <= H(X,Y) + H(Y,Z) + H(X,Z)"))
 ```
 
+## The geometry behind all of this
+
+An entropy vector of ``n`` random variables is a point of ``\mathbb{R}^{2^n-1}``,
+one coordinate per non-empty subset. The elemental inequalities cut a cone out
+of that space, and every vector that comes from an actual distribution lies
+inside it.
+
+For two variables the space is three-dimensional — ``H(X)``, ``H(Y)``,
+``H(X,Y)`` — and the cone can be drawn exactly. It has one facet per elemental
+inequality, and the three meet along three extreme rays, each of which is a
+recognisable distribution:
+
+```@example plots
+plot_entropy_cone(; outside=(0.9, 0.9, 0.4))
+```
+
+The green points are entropy vectors of random distributions, which must lie
+inside. The cross is `(0.9, 0.9, 0.4)`, which is not an entropy vector of
+anything: it claims `H(X,Y) = 0.4` while `H(X) = 0.9`, so `H(Y|X) < 0`.
+
+Past two variables the space is too big to draw — seven dimensions for three
+variables, fifteen for four — so [`plot_entropy_space`](@ref) samples entropy
+vectors, normalises them by their joint entropy so they land on one slice, and
+projects the result onto its two principal directions. Colouring by an
+expression shows where in the cloud that expression changes sign:
+
+```@example plots
+plot_entropy_space(3; color="I(X;Y;Z)")
+```
+
+The multivariate mutual information `I(X;Y;Z)` is negative over much of the
+cloud, which is why `I(X;Y;Z) >= 0` is not provable.
+
+!!! note "What the cloud is and is not"
+    The points are entropic: each comes from a distribution. They do not fill
+    the Shannon cone — sampling only reaches where the sampler goes — and past
+    three variables the entropic vectors are a strict subset of the cone in any
+    case. The picture is a view of where distributions land, not a drawing of
+    the cone itself.
+
+The pieces behind these are available on their own:
+[`entropic_samples`](@ref) draws the vectors, [`entropy_vector`](@ref) takes
+one distribution to its entropies, [`evaluate`](@ref) values an expression at a
+point, and [`cone_rays`](@ref) gives the extreme rays for the cases small
+enough to write down.
+
 ## Saving a figure
 
 The figures are ordinary Makie figures, so they are saved the usual way, in

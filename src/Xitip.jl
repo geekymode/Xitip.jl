@@ -31,15 +31,18 @@ Exported: [`prove`](@ref), [`explain`](@ref), [`count_variables`](@ref),
 """
 module Xitip
 
-using LinearAlgebra: norm
+using LinearAlgebra: norm, svd
+import Random
+using Random: AbstractRNG
 
 export prove, explain, print_proof, latex, latex_string, count_variables,
        Result, Proof, ProofStep, Counterexample, Certificate,
        XitipError, SyntaxError,
        proof_tree, chain_rule_tree, constraint_graph, entropy_table,
+       entropic_samples, entropy_vector, evaluate, cone_rays,
        DecompositionTree, TreeNode, VariableGraph,
        plot_proof_tree, plot_chain_rule, plot_constraints,
-       plot_counterexample
+       plot_counterexample, plot_entropy_cone, plot_entropy_space
 
 const VERSION_STRING = "1.0.0"
 
@@ -64,6 +67,7 @@ include("decide.jl")
 include("simplex.jl")
 include("api.jl")
 include("trees.jl")
+include("geometry.jl")
 include("latex.jl")
 include("cli.jl")
 

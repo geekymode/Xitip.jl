@@ -7,6 +7,8 @@ using CairoMakie
 using GraphMakie
 using Graphs
 using NetworkLayout: Buchheim, Stress
+import Random
+using Random: AbstractRNG
 
 # Colour by what a node is: the expression being decomposed, a term of the
 # proof, a term coming from one of the user's constraints, what is still
@@ -352,5 +354,104 @@ Xitip.plot_counterexample(r::Result; kw...) =
     draw_counterexample(only(r.certificates)::Counterexample; kw...)
 Xitip.plot_counterexample(lines::AbstractString...; kw...) =
     Xitip.plot_counterexample(explain(collect(lines)); kw...)
+
+#----------------------------------------------------------------------------
+# The geometry of entropy vectors
+#----------------------------------------------------------------------------
+
+const FACET_COLOUR = RGBf(0.36, 0.52, 0.72)
+
+"""
+The Shannon cone for two variables: three facets, one per elemental
+inequality, meeting along the three extreme rays.
+"""
+function Xitip.plot_entropy_cone(; samples::Int=250, alphabet::Int=3,
+                                 outside=nothing, size=(680, 620),
+                                 fontsize::Real=14, reach::Real=1.0,
+                                 rng::AbstractRNG=Random.default_rng())
+    rays = Xitip.cone_rays(2)
+    fig = Figure(; size=size)
+    ax = Axis3(fig[1, 1];
+               title="the Shannon cone for two variables",
+               titlesize=fontsize + 2,
+               xlabel="H(X)", ylabel="H(Y)", zlabel="H(X,Y)",
+               xlabelsize=fontsize, ylabelsize=fontsize, zlabelsize=fontsize,
+               xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
+               zticklabelsize=fontsize - 3, azimuth=1.15pi, elevation=0.22pi)
+
+    # each facet is spanned by two of the rays, so it draws as a triangle
+    corners = [Point3f(0, 0, 0)]
+    for (ray, _) in rays
+        push!(corners, Point3f((reach .* ray)...))
+    end
+    for (i, j) in ((2, 3), (2, 4), (3, 4))
+        mesh!(ax, [corners[1], corners[i], corners[j]], [1 2 3];
+              color=(FACET_COLOUR, 0.28), transparency=true)
+        lines!(ax, [corners[i], corners[j]]; color=FACET_COLOUR, linewidth=1.2)
+    end
+    for (k, (ray, meaning)) in enumerate(rays)
+        tip = Point3f((reach .* ray)...)
+        lines!(ax, [Point3f(0, 0, 0), tip]; color=RGBf(0.20, 0.29, 0.44),
+               linewidth=2.5)
+        text!(ax, tip; text=" " * meaning, fontsize=fontsize - 2,
+              color=RGBf(0.20, 0.29, 0.44), align=(:left, :center))
+    end
+
+    if samples > 0
+        cloud = Xitip.entropic_samples(2; count=samples, alphabet=alphabet,
+                                       normalize=false, rng=rng)
+        peak = maximum(cloud[3, :])
+        peak > 0 && (cloud .*= reach / peak)
+        scatter!(ax, cloud[1, :], cloud[2, :], cloud[3, :];
+                 markersize=5, color=(RGBf(0.16, 0.45, 0.35), 0.55),
+                 label="entropies of random distributions")
+    end
+    if outside !== nothing
+        p = Point3f(Float64.(outside)...)
+        scatter!(ax, [p]; markersize=13, color=RGBf(0.75, 0.22, 0.17),
+                 marker=:xcross, label="outside the cone")
+    end
+    # below the cone: an Axis3 has no corner to spare
+    (samples > 0 || outside !== nothing) &&
+        Legend(fig[2, 1], ax; orientation=:horizontal, framevisible=false,
+               labelsize=fontsize - 3, padding=(0, 0, 0, 0))
+    return fig
+end
+
+"""
+Entropy vectors of more than two variables, projected onto their two
+principal directions, optionally coloured by an information expression.
+"""
+function Xitip.plot_entropy_space(n::Int; samples::Int=800, alphabet::Int=2,
+                                  color::Union{AbstractString,Nothing}=nothing,
+                                  names=Xitip.default_names(n),
+                                  size=(680, 520), fontsize::Real=14,
+                                  rng::AbstractRNG=Random.default_rng())
+    cloud = Xitip.entropic_samples(n; count=samples, alphabet=alphabet, rng=rng)
+    coordinates, share = Xitip.project(cloud, 2)
+    fig = Figure(; size=size)
+    head = "entropy vectors of $n variables, $(2^n - 1) dimensions " *
+           "seen in 2"
+    ax = Axis(fig[1, 1]; title=head, titlesize=fontsize + 1,
+              xlabel="first principal direction " *
+                     "($(round(Int, 100 * share[1]))% of the spread)",
+              ylabel="second ($(round(Int, 100 * share[2]))%)",
+              xlabelsize=fontsize - 2, ylabelsize=fontsize - 2,
+              xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3)
+    if color === nothing
+        scatter!(ax, coordinates[1, :], coordinates[2, :];
+                 markersize=6, color=(RGBf(0.20, 0.29, 0.44), 0.5))
+    else
+        values = [Xitip.evaluate(color, names, cloud[:, j])
+                  for j in axes(cloud, 2)]
+        plt = scatter!(ax, coordinates[1, :], coordinates[2, :];
+                       markersize=6, color=values, colormap=:balance,
+                       colorrange=(-maximum(abs, values), maximum(abs, values)))
+        Colorbar(fig[1, 2], plt; label=String(color), labelsize=fontsize - 2,
+                 ticklabelsize=fontsize - 3)
+    end
+    hidespines!(ax, :t, :r)
+    return fig
+end
 
 end # module XitipMakieExt

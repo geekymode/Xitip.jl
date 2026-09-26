@@ -52,6 +52,17 @@ plot_constraints
 plot_counterexample
 ```
 
+## Geometry
+
+```@docs
+entropy_vector
+entropic_samples
+evaluate
+cone_rays
+plot_entropy_cone
+plot_entropy_space
+```
+
 ## Errors
 
 ```@docs
