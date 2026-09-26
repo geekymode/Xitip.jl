@@ -161,8 +161,88 @@ end
     @test one_share[1] > 0.999
 end
 
+@testset "the I-measure" begin
+    # Z = X xor Y: each pair is independent, yet the three together are not
+    h = entropy_vector([1, 0, 0, 1, 0, 1, 1, 0] ./ 4, 3, 2)
+    @test imeasure(h) == ["H(X|Y,Z)" => 0.0, "H(Y|X,Z)" => 0.0,
+                          "H(Z|X,Y)" => 0.0, "I(X;Y|Z)" => 1.0,
+                          "I(X;Z|Y)" => 1.0, "I(Y;Z|X)" => 1.0,
+                          "I(X;Y;Z)" => -1.0]
+    # the atoms always sum to the joint entropy, whatever the distribution
+    rng = MersenneTwister(21)
+    for n in 2:4
+        cloud = entropic_samples(n; count=40, alphabet=3, normalize=false,
+                                 rng=rng)
+        for j in axes(cloud, 2)
+            atoms = imeasure(cloud[:, j])
+            @test sum(last, atoms) ≈ cloud[end, j]
+            # and each atom equals the quantity it is named after
+            for (name, value) in atoms
+                @test evaluate(name, Xitip.default_names(n), cloud[:, j]) ≈
+                      value atol=1e-9
+            end
+        end
+    end
+    @test_throws XitipError imeasure([1.0, 1.0, 2.0], ["X", "Y", "Z"])
+end
+
+@testset "the three-variable cone is a bipyramid" begin
+    # the five vertices, and a distribution sitting on each of them
+    joint(f) = begin
+        p = zeros(8)
+        for x in 0:1, y in 0:1
+            X, Y, Z = f(x, y)
+            p[1 + X + 2Y + 4Z] += 0.25
+        end
+        p
+    end
+    cases = [(x, y) -> (x, x, x),  (x, y) -> (x, x, y),
+             (x, y) -> (x, y, x),  (x, y) -> (y, x, x),
+             (x, y) -> (x, y, xor(x, y))]
+    for (case, (vertex, _)) in zip(cases, shared_cone_vertices())
+        b, c = shared_slice(entropy_vector(joint(case), 3, 2))
+        @test b ≈ vertex
+        @test c ≈ 1 - sum(vertex)          # the slice fixes the total at 1
+    end
+    # the equator is exactly I(X;Y;Z) = 0, and only the xor apex is below it
+    @test [1 - sum(v) for (v, _) in shared_cone_vertices()] ==
+          [1.0, 0.0, 0.0, 0.0, -0.5]
+
+    # every sample lands inside the body: b >= 0 and no two of them exceed 1
+    rng = MersenneTwister(22)
+    cloud = entropic_samples(3; count=400, alphabet=3, normalize=false, rng=rng)
+    seen = 0
+    for j in axes(cloud, 2)
+        slice = shared_slice(cloud[:, j])
+        slice === nothing && continue
+        seen += 1
+        b, c = slice
+        @test all(b .>= -1e-9)
+        @test all(b[i] + b[k] <= 1 + 1e-9 for i in 1:3 for k in i+1:3)
+        @test c ≈ 1 - sum(b) atol=1e-9
+    end
+    @test seen > 300
+
+    # a noisy xor stays on the apex however much noise there is: the three
+    # conditional informations stay equal, and the slice divides the scale out
+    for q in (0.0, 0.3, 0.7, 0.95)
+        p = zeros(8)
+        for x in 0:1, y in 0:1, z in 0:1
+            p[1 + x + 2y + 4z] = 0.25 * ((1 - q) * (z == xor(x, y)) + q * 0.5)
+        end
+        b, c = shared_slice(entropy_vector(p, 3, 2))
+        @test b ≈ [0.5, 0.5, 0.5]
+        @test c ≈ -0.5
+    end
+    # three independent variables share nothing, so there is no slice
+    @test shared_slice(Float64[1, 1, 2, 1, 2, 2, 3]) === nothing
+    @test_throws XitipError shared_slice([1.0, 1.0, 2.0])
+end
+
 @testset "geometry plots need the extension" begin
     for call in (() -> plot_entropy_cone(),
+                 () -> plot_entropy_cone(3),
+                 () -> plot_imeasure([1.0, 1.0, 2.0]),
                  () -> plot_entropy_space(3))
         err = try call() catch e; e end
         @test err isa XitipError

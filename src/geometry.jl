@@ -290,6 +290,113 @@ function cone_rays(n::Int)
 end
 
 """
+    imeasure(h, names=default_names(n)) -> Vector{Pair{String,Float64}}
+
+The atoms of the I-measure at the entropy vector `h`: one value per region
+of the Venn diagram of `n` random variables, named by the information
+quantity it is. The atoms sum to the joint entropy, and every one of them
+is an elemental inequality — except the ones shared by three or more
+variables, which may be negative.
+
+```jldoctest
+julia> h = entropy_vector([1,0,0,1,0,1,1,0] ./ 4, 3, 2);   # Z = X xor Y
+
+julia> imeasure(h)
+7-element Vector{Pair{String, Float64}}:
+ "H(X|Y,Z)" => 0.0
+ "H(Y|X,Z)" => 0.0
+ "H(Z|X,Y)" => 0.0
+ "I(X;Y|Z)" => 1.0
+ "I(X;Z|Y)" => 1.0
+ "I(Y;Z|X)" => 1.0
+ "I(X;Y;Z)" => -1.0
+```
+"""
+function imeasure(h::AbstractVector{<:Real},
+                  names::AbstractVector{<:AbstractString}=
+                      default_names(trailing_ones(length(h))))
+    n = length(names)
+    length(h) == (1 << n) - 1 ||
+        throw(XitipError("expected $((1 << n) - 1) entropies for " *
+                         "$n variables, got $(length(h))"))
+    out = Pair{String,Float64}[]
+    for S in sort(1:(1 << n) - 1; by=S -> (count_ones(S), S))
+        push!(out, atom_name(S, names) => atom_value(S, h, n))
+    end
+    return out
+end
+
+"""The atom inside every variable of `S` and outside every other one."""
+function atom_value(S::Int, h::AbstractVector{<:Real}, n::Int)
+    rest = ((1 << n) - 1) & ~S
+    total = 0.0
+    for T in 1:(1 << n) - 1
+        T & ~S == 0 || continue                       # T a non-empty subset of S
+        sign = isodd(count_ones(T)) ? 1.0 : -1.0
+        total += sign * (h[T | rest] - (rest == 0 ? 0.0 : h[rest]))
+    end
+    return total
+end
+
+"""What that atom is called: `H(X|Y,Z)`, `I(X;Y|Z)`, `I(X;Y;Z)`."""
+function atom_name(S::Int, names)
+    n = length(names)
+    inside = [names[i] for i in 1:n if S & (1 << (i - 1)) != 0]
+    outside = [names[i] for i in 1:n if S & (1 << (i - 1)) == 0]
+    given = isempty(outside) ? "" : "|" * join(outside, ",")
+    return length(inside) == 1 ? "H($(inside[1])$given)" :
+           "I($(join(inside, ";"))$given)"
+end
+
+"""
+    shared_slice(h) -> (b, c) or nothing
+
+The three-variable entropy vector `h` in the coordinates the cone's shape
+lives in, normalised. `b` holds `I(X;Y|Z)`, `I(X;Z|Y)`, `I(Y;Z|X)` and `c`
+holds `I(X;Y;Z)`, all divided by their total, which is the part of
+`H(X,Y,Z)` that is not private to one variable. `nothing` when there is no
+shared information to speak of, the three variables being independent.
+
+The private atoms `H(X|Y,Z)`, `H(Y|X,Z)`, `H(Z|X,Y)` are dropped, which
+loses no shape: each appears in exactly one elemental inequality, saying it
+is non-negative, so they contribute a free orthant and nothing more.
+"""
+function shared_slice(h::AbstractVector{<:Real})
+    length(h) == 7 || throw(XitipError("this slice is for three variables"))
+    b = [atom_value(3, h, 3), atom_value(5, h, 3), atom_value(6, h, 3)]
+    c = atom_value(7, h, 3)
+    total = sum(b) + c
+    total <= 1e-9 && return nothing
+    return b ./ total, c / total
+end
+
+"""
+    shared_cone_vertices() -> Vector{Pair{Vector{Float64},String}}
+
+The five vertices of [`shared_slice`](@ref)'s picture of the three-variable
+Shannon cone, with a distribution sitting on each. In those coordinates the
+cone is a triangular bipyramid: one apex where all shared information is
+common to all three variables, an equatorial triangle where `I(X;Y;Z)` is
+zero, and a second apex where it is as negative as it can be.
+
+```jldoctest
+julia> [name for (_, name) in shared_cone_vertices()]
+5-element Vector{String}:
+ "X = Y = Z"
+ "X = Y, Z independent"
+ "X = Z, Y independent"
+ "Y = Z, X independent"
+ "Z = X xor Y"
+```
+"""
+shared_cone_vertices() =
+    [[0.0, 0.0, 0.0] => "X = Y = Z",
+     [1.0, 0.0, 0.0] => "X = Y, Z independent",
+     [0.0, 1.0, 0.0] => "X = Z, Y independent",
+     [0.0, 0.0, 1.0] => "Y = Z, X independent",
+     [0.5, 0.5, 0.5] => "Z = X xor Y"]
+
+"""
     project(samples, dims=2) -> (coordinates, variance)
 
 Project the columns of `samples` onto their `dims` principal directions,
@@ -314,8 +421,10 @@ end
 """
     plot_entropy_cone(; kwargs...) -> Figure
 
-Draw the Shannon cone for two random variables, which lives in the three
-dimensions `(H(X), H(Y), H(X,Y))`: three facets, one per elemental
+Draw the Shannon cone for `n` random variables, `n` being 2 or 3.
+
+For two variables it lives in the three dimensions
+`(H(X), H(Y), H(X,Y))`: three facets, one per elemental
 inequality, meeting along three extreme rays — `X` constant, `Y` constant
 and `X = Y`.
 
@@ -326,7 +435,18 @@ usually the easier of the two to read.
 
 $PLOT_HINT
 
-Keywords: `samples` scatters that many entropy vectors of random
+For three variables the cone lives in seven dimensions, but only four of
+them carry any shape: written in the atoms of the I-measure, the nine
+elemental inequalities are `H(X|Y,Z), H(Y|X,Z), H(Z|X,Y) >= 0`, which
+involve nothing else, together with `I(X;Y|Z), I(X;Z|Y), I(Y;Z|X) >= 0` and
+`I(X;Y) , I(X;Z), I(Y;Z) >= 0`. Dropping the three private atoms and
+normalising leaves a three-dimensional body, and that body is a triangular
+bipyramid — drawn exactly, with a distribution named at each of its five
+vertices. Its equator is `I(X;Y;Z) = 0`, so the lower half is precisely
+where three-way mutual information is negative. See
+[`shared_slice`](@ref) and [`shared_cone_vertices`](@ref).
+
+Keywords for two variables: `samples` scatters that many entropy vectors of random
 distributions inside the cone, `outside` marks a point that breaks one of
 the inequalities and shows where it lands on the slice, `style` is how the
 samples are drawn (see [`entropic_samples`](@ref); `:uniform` covers the
@@ -336,12 +456,40 @@ it is cut off, plus `alphabet`, `size` and `fontsize`.
 plot_entropy_cone(::Any...; kw...) = throw(XitipError(PLOT_HINT))
 
 """
+    plot_imeasure(h; kwargs...) -> Figure
+
+Draw the I-measure of two or three random variables as a Venn diagram with
+every region carrying its value. `h` is an entropy vector, or a
+[`Result`](@ref) whose counterexample supplies one. A negative region is
+drawn in red: those are the ones no elemental inequality forbids.
+
+$PLOT_HINT
+
+Keywords: `names`, `title`, `size`, `fontsize`.
+"""
+plot_imeasure(::Any...; kw...) = throw(XitipError(PLOT_HINT))
+
+"""
     plot_entropy_space(n; kwargs...) -> Figure
 
 Look at the entropy vectors of `n` random variables, which live in
-`2^n - 1` dimensions, by projecting sampled ones onto their two principal
-directions. `color` names an information expression to colour the points
-by, e.g. `"I(X;Y;Z)"`, which shows where in the cloud it turns negative.
+`2^n - 1` dimensions, by drawing sampled ones in two dimensions.
+
+`coordinates` gives two information expressions to use as the axes, e.g.
+`("I(X;Y)", "I(X;Y|Z)")`. Prefer this: the axes then mean something, and a
+statement relating the two is a line you can see the points fall on one
+side of.
+
+Without it the axes are the two principal directions of the sample, which
+carry the most spread but are mixtures of all `2^n - 1` entropies and mean
+nothing on their own. Distance in that picture is not distance in any
+quantity, and clumps in it are the sampler's dependency structures — one
+clump per choice of which variable follows which — not features of the
+cone. For three variables [`plot_entropy_cone`](@ref) draws the real thing
+instead.
+
+`color` names an expression to colour the points by, which shows where in
+the cloud it turns negative.
 
 $PLOT_HINT
 """

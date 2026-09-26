@@ -10,6 +10,13 @@ using NetworkLayout: Buchheim, Stress
 import Random
 using Random: AbstractRNG
 
+const GRID = RGBAf(0.55, 0.58, 0.62, 0.45)
+const BLUE = RGBf(0.20, 0.29, 0.44)
+const GREEN = RGBf(0.16, 0.45, 0.35)
+const RED = RGBf(0.75, 0.22, 0.17)
+halves(values) = [v ≈ round(2v) / 2 ? string(round(v; digits=2)) : ""
+                  for v in values]
+
 # Colour by what a node is: the expression being decomposed, a term of the
 # proof, a term coming from one of the user's constraints, what is still
 # left at that point, or the constant at the very end.
@@ -365,7 +372,14 @@ const FACET_COLOUR = RGBf(0.36, 0.52, 0.72)
 The Shannon cone for two variables: three facets, one per elemental
 inequality, meeting along the three extreme rays.
 """
-function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
+function Xitip.plot_entropy_cone(n::Int=2; kw...)
+    n == 2 && return two_variable_cone(; kw...)
+    n == 3 && return three_variable_cone(; kw...)
+    throw(XitipError("the cone can be drawn for two or three variables; " *
+                     "past that use plot_entropy_space"))
+end
+
+function two_variable_cone(; samples::Int=400, alphabet::Int=3,
                                  outside=nothing, size=(660, 860),
                                  fontsize::Real=13, reach::Real=1.0,
                                  style::Symbol=:structured,
@@ -391,7 +405,7 @@ function Xitip.plot_entropy_cone(; samples::Int=400, alphabet::Int=3,
     ticks = range(0, reach; step=reach / 8)
     tick_labels(values) = [v ≈ round(v / (reach / 2)) * (reach / 2) ?
                            string(round(v; digits=2)) : "" for v in values]
-    grid = RGBAf(0.55, 0.58, 0.62, 0.45)
+    grid = GRID
 
     ax = Axis3(fig[1, 1];
                title="the Shannon cone for two variables",
@@ -500,34 +514,218 @@ principal directions, optionally coloured by an information expression.
 """
 function Xitip.plot_entropy_space(n::Int; samples::Int=800, alphabet::Int=2,
                                   color::Union{AbstractString,Nothing}=nothing,
+                                  coordinates=nothing,
                                   names=Xitip.default_names(n),
                                   size=(680, 520), fontsize::Real=14,
                                   rng::AbstractRNG=Random.default_rng())
     cloud = Xitip.entropic_samples(n; count=samples, alphabet=alphabet, rng=rng)
-    coordinates, share = Xitip.project(cloud, 2)
     fig = Figure(; size=size)
-    head = "entropy vectors of $n variables, $(2^n - 1) dimensions " *
-           "seen in 2"
-    ax = Axis(fig[1, 1]; title=head, titlesize=fontsize + 1,
-              xlabel="first principal direction " *
-                     "($(round(Int, 100 * share[1]))% of the spread)",
-              ylabel="second ($(round(Int, 100 * share[2]))%)",
-              xlabelsize=fontsize - 2, ylabelsize=fontsize - 2,
-              xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3)
-    if color === nothing
-        scatter!(ax, coordinates[1, :], coordinates[2, :];
-                 markersize=6, color=(RGBf(0.20, 0.29, 0.44), 0.5))
+    at(expression) = [Xitip.evaluate(expression, names, cloud[:, j])
+                      for j in axes(cloud, 2)]
+
+    if coordinates === nothing
+        # principal directions: honest about the fact that they mean nothing
+        placed, share = Xitip.project(cloud, 2)
+        xs, ys = placed[1, :], placed[2, :]
+        ax = Axis(fig[1, 1];
+                  title="entropy vectors of $n variables, " *
+                        "$(2^n - 1) dimensions seen in 2",
+                  subtitle="the axes are principal directions: mixtures of " *
+                           "the entropies, with no meaning of their own",
+                  titlesize=fontsize + 1, subtitlesize=fontsize - 3,
+                  subtitlecolor=RGBf(0.40, 0.43, 0.47),
+                  xlabel="first principal direction " *
+                         "($(round(Int, 100 * share[1]))% of the spread)",
+                  ylabel="second ($(round(Int, 100 * share[2]))%)",
+                  xlabelsize=fontsize - 2, ylabelsize=fontsize - 2,
+                  xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3)
     else
-        values = [Xitip.evaluate(color, names, cloud[:, j])
-                  for j in axes(cloud, 2)]
-        plt = scatter!(ax, coordinates[1, :], coordinates[2, :];
-                       markersize=6, color=values, colormap=:balance,
-                       colorrange=(-maximum(abs, values), maximum(abs, values)))
+        length(coordinates) == 2 ||
+            throw(XitipError("coordinates takes two expressions"))
+        xs, ys = at(coordinates[1]), at(coordinates[2])
+        ax = Axis(fig[1, 1];
+                  title="entropy vectors of $n variables, " *
+                        "in two information coordinates",
+                  subtitle="the dashed lines are where each coordinate " *
+                           "changes sign",
+                  titlesize=fontsize + 1, subtitlesize=fontsize - 3,
+                  subtitlecolor=RGBf(0.40, 0.43, 0.47),
+                  xlabel=String(coordinates[1]), ylabel=String(coordinates[2]),
+                  xlabelsize=fontsize - 1, ylabelsize=fontsize - 1,
+                  xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3)
+        hlines!(ax, [0]; color=(RGBf(0.35, 0.38, 0.42), 0.8), linestyle=:dash)
+        vlines!(ax, [0]; color=(RGBf(0.35, 0.38, 0.42), 0.8), linestyle=:dash)
+    end
+
+    if color === nothing
+        scatter!(ax, xs, ys; markersize=6, color=(BLUE, 0.5))
+    else
+        values = at(color)
+        reach = maximum(abs, values)
+        plt = scatter!(ax, xs, ys; markersize=6, color=values,
+                       colormap=:balance, colorrange=(-reach, reach))
         Colorbar(fig[1, 2], plt; label=String(color), labelsize=fontsize - 2,
                  ticklabelsize=fontsize - 3)
     end
     hidespines!(ax, :t, :r)
     return fig
+end
+
+#----------------------------------------------------------------------------
+# The three-variable cone, and the I-measure it is written in
+#----------------------------------------------------------------------------
+
+"""
+The cone for three variables, in the coordinates where it has a shape: a
+triangular bipyramid whose equator is `I(X;Y;Z) = 0`.
+"""
+function three_variable_cone(; samples::Int=600, alphabet::Int=2,
+                             size=(700, 720), fontsize::Real=13,
+                             azimuth::Real=1.33pi, elevation::Real=0.28pi,
+                             rng::AbstractRNG=Random.default_rng())
+    vertices = Xitip.shared_cone_vertices()
+    v = [Point3f(p...) for (p, _) in vertices]
+    fig = Figure(; size=size)
+    ax = Axis3(fig[1, 1];
+               title="the Shannon cone for three variables,\n" *
+                     "in the shared atoms where it is a bipyramid",
+               titlesize=fontsize + 2,
+               xlabel="I(X;Y|Z)", ylabel="I(X;Z|Y)", zlabel="I(Y;Z|X)",
+               xlabelsize=fontsize, ylabelsize=fontsize, zlabelsize=fontsize,
+               xticklabelsize=fontsize - 3, yticklabelsize=fontsize - 3,
+               zticklabelsize=fontsize - 3,
+               xticks=0:0.25:1, yticks=0:0.25:1, zticks=0:0.25:1,
+               xtickformat=halves, ytickformat=halves, ztickformat=halves,
+               xgridcolor=GRID, ygridcolor=GRID, zgridcolor=GRID,
+               azimuth=azimuth, elevation=elevation, protrusions=32)
+
+    # the upper half, I(X;Y;Z) > 0, is the three facets through the apex
+    # where all the shared information is common to all three variables
+    for (apex, faces, colour) in
+            ((1, ((2, 3), (2, 4), (3, 4)), BLUE),
+             (5, ((2, 3), (2, 4), (3, 4)), RED))
+        for (i, j) in faces
+            mesh!(ax, [v[apex], v[i], v[j]], [1 2 3];
+                  color=(colour, 0.16), transparency=true)
+            lines!(ax, [v[apex], v[i], v[j], v[apex]];
+                   color=(colour, 0.85), linewidth=2)
+        end
+    end
+    # the equator is exactly I(X;Y;Z) = 0
+    mesh!(ax, [v[2], v[3], v[4]], [1 2 3]; color=(GREEN, 0.22),
+          transparency=true)
+    lines!(ax, [v[2], v[3], v[4], v[2]]; color=GREEN, linewidth=2.5)
+
+    if samples > 0
+        cloud = Xitip.entropic_samples(3; count=samples, alphabet=alphabet,
+                                       normalize=false, rng=rng)
+        points, colours = Point3f[], RGBAf[]
+        for j in axes(cloud, 2)
+            slice = Xitip.shared_slice(cloud[:, j])
+            slice === nothing && continue
+            b, c = slice
+            push!(points, Point3f(b...))
+            push!(colours, c < -1e-9 ? RGBAf(RED.r, RED.g, RED.b, 0.6) :
+                                       RGBAf(GREEN.r, GREEN.g, GREEN.b, 0.45))
+        end
+        isempty(points) ||
+            scatter!(ax, points; markersize=5, color=colours)
+    end
+
+    # short labels, since the full descriptions do not fit in three dimensions
+    short = ["X = Y = Z", "X = Y, Z indep.", "X = Z, Y indep.",
+             "Y = Z, X indep.", "Z = X xor Y"]
+    for k in eachindex(v)
+        scatter!(ax, [v[k]]; markersize=10, color=k == 5 ? RED : BLUE)
+        text!(ax, v[k]; text=" " * short[k] * " ", fontsize=fontsize - 2,
+              color=k == 5 ? RED : BLUE, font=:bold,
+              align=(k == 2 ? :right : :left, k == 1 ? :top : :bottom))
+    end
+
+    Legend(fig[2, 1],
+           [MarkerElement(color=(BLUE, 0.6), marker=:rect, markersize=13),
+            MarkerElement(color=(GREEN, 0.5), marker=:rect, markersize=13),
+            MarkerElement(color=(RED, 0.6), marker=:rect, markersize=13)],
+           ["I(X;Y;Z) > 0", "I(X;Y;Z) = 0, the equator", "I(X;Y;Z) < 0"];
+           orientation=:horizontal, framevisible=false,
+           labelsize=fontsize - 2, padding=(0, 0, 0, 0))
+    rowgap!(fig.layout, 4)
+    return fig
+end
+
+"""Venn diagram of the I-measure, every region carrying its value."""
+function Xitip.plot_imeasure(h; names=nothing, title=nothing,
+                             size=nothing, fontsize::Real=14)
+    values = entropies_of(h)
+    n = trailing_ones(length(values))
+    n in (2, 3) ||
+        throw(XitipError("a Venn diagram is drawn for two or three variables"))
+    labels = names === nothing ? Xitip.default_names(n) : collect(names)
+    atoms = Xitip.imeasure(values, labels)
+    size === nothing && (size = n == 2 ? (560, 380) : (620, 600))
+
+    fig = Figure(; size=size)
+    ax = Axis(fig[1, 1];
+              title=title === nothing ?
+                    "the I-measure of $(join(labels, ", "))" : title,
+              titlesize=fontsize + 2, aspect=DataAspect())
+    hidedecorations!(ax)
+    hidespines!(ax)
+
+    radius, apart = 1.0, n == 2 ? 0.95 : 0.62
+    centres = [Point2f(apart * cos(a), apart * sin(a))
+               for a in (n == 2 ? (pi, 0.0) :
+                         (pi / 2, pi / 2 + 2pi / 3, pi / 2 + 4pi / 3))]
+    tint = [BLUE, GREEN, RGBf(0.55, 0.42, 0.16)]
+    for (k, centre) in pairs(centres)
+        poly!(ax, Circle(centre, radius); color=(tint[k], 0.10),
+              strokecolor=tint[k], strokewidth=1.6)
+        text!(ax, centre + Point2f(1.35 .* (centre ./ apart));
+              text=labels[k], fontsize=fontsize + 2, color=tint[k],
+              align=(:center, :center), font=:bold)
+    end
+
+    # find where to put each value by taking the centroid of its region
+    spots = region_centroids(centres, radius, n)
+    for (k, (name, value)) in pairs(atoms)
+        mask = sort(1:(1 << n) - 1; by=S -> (count_ones(S), S))[k]
+        shown = abs(value) < 5e-4 ? "0" : string(round(value; digits=3))
+        text!(ax, spots[mask];
+              text=name * "\n" * shown, fontsize=fontsize - 3,
+              color=value < -1e-9 ? RED : RGBf(0.15, 0.17, 0.20),
+              font=value < -1e-9 ? :bold : :regular,
+              align=(:center, :center))
+    end
+    limits!(ax, -2.6, 2.6, n == 2 ? -1.5 : -2.1, n == 2 ? 1.5 : 2.3)
+    return fig
+end
+
+"""Entropy values out of whatever the caller passed."""
+entropies_of(h::AbstractVector{<:Real}) = Float64.(h)
+function entropies_of(result)
+    certificates = getfield(result, :certificates)
+    for c in certificates
+        c isa Xitip.Counterexample && return Float64.(c.entropies)
+    end
+    throw(XitipError("no counterexample to draw; pass an entropy vector"))
+end
+
+"""The centroid of each Venn region, found on a grid so it stays inside."""
+function region_centroids(centres, radius, n)
+    total = Dict{Int,Point2f}()
+    counts = Dict{Int,Int}()
+    step = 0.01
+    for x in -2.2:step:2.2, y in -2.2:step:2.2
+        point = Point2f(x, y)
+        mask = 0
+        for (k, centre) in pairs(centres)
+            sum(abs2, point - centre) <= radius^2 && (mask |= 1 << (k - 1))
+        end
+        mask == 0 && continue
+        total[mask] = get(total, mask, Point2f(0, 0)) + point
+        counts[mask] = get(counts, mask, 0) + 1
+    end
+    return Dict(k => total[k] / counts[k] for k in keys(total))
 end
 
 end # module XitipMakieExt

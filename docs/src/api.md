@@ -58,9 +58,13 @@ plot_counterexample
 entropy_vector
 entropic_samples
 entropic_distribution
+imeasure
+shared_slice
+shared_cone_vertices
 evaluate
 cone_rays
 plot_entropy_cone
+plot_imeasure
 plot_entropy_space
 ```
 

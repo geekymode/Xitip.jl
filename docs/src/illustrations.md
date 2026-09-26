@@ -303,33 +303,116 @@ different and also useful thing to see — the bunching along the
 ``I(X;Y) = 0`` edge is telling you that independence is what you get by
 accident.
 
-### More than two variables
+### Three variables: the I-measure
 
-Past two variables the space is too big to draw — seven dimensions for three,
-fifteen for four — so [`plot_entropy_space`](@ref) samples entropy vectors,
-normalises them by their joint entropy so they land on one slice, and projects
-the result onto its two principal directions. Colouring by an expression shows
-where in the cloud that expression changes sign:
+Three variables is where the geometry stops being obvious — the space has
+seven dimensions — but it is also where the most useful picture in
+information theory lives. Split the joint entropy into the regions of a Venn
+diagram: [`imeasure`](@ref) gives the value of every region, and
+[`plot_imeasure`](@ref) draws it.
 
 ```@example plots
-plot_entropy_space(3; color="I(X;Y;Z)")
+p = [1, 0, 0, 1, 0, 1, 1, 0] ./ 4       # X, Y fair bits and Z = X xor Y
+plot_imeasure(entropy_vector(p, 3, 2); title = "Z = X xor Y")
 ```
 
-The multivariate mutual information `I(X;Y;Z)` is negative over much of the
-cloud, which is why `I(X;Y;Z) >= 0` is not provable.
+Six of the seven regions are elemental inequalities, so they cannot be
+negative. The centre is not: `I(X;Y;Z)` is the only region no inequality
+protects, and in the exclusive-or distribution it is `-1`. Each pair of
+variables is independent, yet any two of them determine the third, and the
+diagram shows where that goes: each pairwise region is a full bit, and the
+centre cancels them back down.
 
-!!! note "What the cloud is and is not"
-    The points are entropic: each comes from a distribution. They do not fill
-    the Shannon cone — sampling only reaches where the sampler goes — and past
-    three variables the entropic vectors are a strict subset of the cone in any
-    case. The picture is a view of where distributions land, not a drawing of
-    the cone itself.
+### Three variables: the cone is a bipyramid
 
-The pieces behind these are available on their own:
-[`entropic_samples`](@ref) draws the vectors, [`entropy_vector`](@ref) takes
-one distribution to its entropies, [`evaluate`](@ref) values an expression at a
-point, and [`cone_rays`](@ref) gives the extreme rays for the cases small
-enough to write down.
+Write the nine elemental inequalities in those seven regions and something
+convenient happens:
+
+```
+H(X|Y,Z) >= 0     H(Y|X,Z) >= 0     H(Z|X,Y) >= 0
+I(X;Y|Z) >= 0     I(X;Z|Y) >= 0     I(Y;Z|X) >= 0
+I(X;Y)   >= 0     I(X;Z)   >= 0     I(Y;Z)   >= 0
+```
+
+The three private regions in the first row appear in one inequality each and
+nowhere else. They are a free non-negative orthant: they carry no shape, and
+can be dropped. What is left involves only the three conditional mutual
+informations and the centre, and the last row says `I(X;Y|Z) + I(X;Y;Z) >= 0`
+and its two siblings. Normalising by the total gives a three-dimensional
+body, and that body is a **triangular bipyramid**, drawn exactly:
+
+```@example plots
+plot_entropy_cone(3)
+```
+
+It has five vertices and each is a distribution you can write down
+([`shared_cone_vertices`](@ref)):
+
+```@example plots
+shared_cone_vertices()
+```
+
+Reading it:
+
+* The **equator**, the green triangle, is exactly `I(X;Y;Z) = 0`. Above it
+  three-way information is positive, below it negative.
+* The **upper apex** is `X = Y = Z`: all the shared information is common to
+  all three at once, so every conditional mutual information is zero.
+* The **equatorial vertices** are "two variables agree, the third is
+  independent" — all the shared information sits in one pair.
+* The **lower apex** is exclusive-or, and it is the furthest point below the
+  equator. `I(X;Y;Z)` cannot be more negative than this, relative to the
+  shared information, because the cone stops there. Noise does not move it:
+  a `Z` that equals `X xor Y` only most of the time sits on that same apex,
+  since the three conditional informations stay equal and the normalisation
+  divides the scale out.
+
+So "three-way mutual information can be negative" is not a curiosity — it is
+one of the two pyramids, half the shape. That is why `I(X;Y;Z) >= 0` is not
+provable:
+
+```@example plots
+prove("I(X;Y;Z) >= 0")
+```
+
+The green dots are sampled distributions. Almost all of them are in the
+upper half: negative three-way information needs exclusive-or-like structure,
+which a randomly drawn distribution essentially never has — about 4 in 1700
+in the sample above.
+
+### More than three variables
+
+Past three variables the space is too big to draw — fifteen dimensions for
+four — so [`plot_entropy_space`](@ref) samples entropy vectors and draws them
+in two. Give it two expressions to use as the axes, so that the picture means
+something:
+
+```@example plots
+plot_entropy_space(3; coordinates = ("I(X;Y)", "I(X;Y|Z)"),
+                      color = "I(X;Y;Z)")
+```
+
+Here the axes are quantities, the dashed lines are where each turns negative,
+and the diagonal `I(X;Y) = I(X;Y|Z)` is where the colour is zero — points
+below it have positive three-way information, points above it negative. The
+cloud sitting almost entirely below that diagonal is the same fact as before.
+
+Without `coordinates` the axes are the two principal directions of the
+sample:
+
+```@example plots
+plot_entropy_space(3; color = "I(X;Y;Z)")
+```
+
+This one needs a warning. The axes are mixtures of all seven entropies and
+mean nothing on their own; distance in the picture is not distance in any
+quantity; there is no boundary drawn, because the boundary of the cone is
+not a curve in this projection; and the clumps are an artefact of the
+sampler, one per choice of which variable follows which, not a feature of
+the cone. The two directions here carry only about 79% of the spread, so
+even the shape is partly an accident of projection. The colour is the one
+thing that does mean something: it is the value of the expression, red for
+positive and blue for negative. Prefer the two pictures above it.
 
 ## Saving a figure
 
