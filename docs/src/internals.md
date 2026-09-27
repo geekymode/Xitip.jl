@@ -69,13 +69,25 @@ degenerate. For eight variables:
 
 | eight variables | non-negative least squares | exact simplex |
 |:--|--:|--:|
-| provable statement | 0.03 s | minutes |
-| not provable | 1.0 s | 20 s |
+| `H(X1,...,X8) <= H(X1) + ... + H(X8)` (provable) | 0.06 s | did not finish in 9 minutes |
+| the same reversed (not provable) | 9 s | 3.8 s |
+
+The provable row is the whole argument. The not-provable row is not: there
+the two are comparable, and which one wins depends on the statement. Over
+three not-provable eight-variable statements, least squares took 6 s, 11 s
+and 12 s where the simplex took 7.8 s, 3.8 s and 55 s — it wins one, loses
+one and is five times slower on the third.
+
+So the simplex is the fallback not because it is always slower, but because
+it is sometimes catastrophically slower while least squares never was, and
+a prover is asked about statements believed true far more often than not.
+The seconds in the not-provable column are the exact rational projection
+that certifies a counterexample, not the least squares step.
 
 An earlier version of this package used a floating point simplex method with
-Bland's rule; at eight variables it cycled and never finished. Exact arithmetic
-fixed the cycling at the cost of those 20 seconds, and the least squares
-formulation removed both problems.
+Bland's rule; at eight variables it cycled and never finished. Exact
+arithmetic fixed the cycling, and the least squares formulation removed the
+blow-up on provable statements.
 
 ## Performance
 
@@ -83,11 +95,15 @@ Time per call in a warm session, on an Apple Silicon laptop:
 
 | variables | provable | not provable |
 |--:|--:|--:|
-| 4 | 0.003 s | 0.001 s |
-| 5 | < 0.001 s | 0.001 s |
-| 6 | 0.001 s | 0.005 s |
-| 7 | 0.003 s | 0.07 s |
-| 8 | 0.03 s | 1.0 s |
+| 4 | 0.0004 s | 0.001 s |
+| 5 | 0.001 s | 0.002 s |
+| 6 | 0.002 s | 0.012 s |
+| 7 | 0.006 s | 0.11 s |
+| 8 | 0.06 s | 9 s |
+
+The statements measured are subadditivity, `H(X1,...,Xn) <= H(X1) + ... +
+H(Xn)`, and its reverse, which is not provable — named so the numbers can
+be reproduced.
 
 The eight-variable example on the [Examples](@ref) page, with fourteen
 constraints, takes about 0.1 s.

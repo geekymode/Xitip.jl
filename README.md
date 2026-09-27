@@ -332,17 +332,26 @@ number of random variables; the problem has 2ⁿ−1 dimensions and grows to
 
 | n | provable | not provable |
 |--:|--:|--:|
-| 4 | 0.003 s | 0.001 s |
-| 5 | < 0.001 s | 0.001 s |
-| 6 | 0.001 s | 0.005 s |
-| 7 | 0.003 s | 0.07 s |
-| 8 | 0.033 s | 1.0 s |
+| 4 | 0.0004 s | 0.001 s |
+| 5 | 0.001 s | 0.002 s |
+| 6 | 0.002 s | 0.012 s |
+| 7 | 0.006 s | 0.11 s |
+| 8 | 0.06 s | 9 s |
+
+The statements measured are subadditivity, `H(X1,...,Xn) <= H(X1) + ... +
+H(Xn)`, and its reverse, which is not provable — named so the numbers can be
+reproduced.
 
 The command line adds about 2.3 s for Julia's startup and code loading, so
 for many expressions prefer a single session over repeated `bin/xitip`
-calls. For comparison, the exact simplex method (`--simplex`) needs 20 s
-for the 8-variable case in the right column, which is why it is only the
-fallback.
+calls.
+
+The exact simplex method (`--simplex`) is the fallback because it cannot do
+the provable case at all: at eight variables it had not finished after nine
+minutes, where the default takes 0.06 s. On statements that cannot be proven
+the two are comparable and it depends on the instance — over three such
+eight-variable statements the default took 6 s, 11 s and 12 s where the
+simplex took 7.8 s, 3.8 s and 55 s.
 
 A statement that cannot be proven takes longer when constraints are
 involved, because the counterexample then has to be certified by an exact

@@ -145,8 +145,10 @@ function decide(gens::Vector{Generator}, nvars::Int, v::Dict{Int,Coef};
                 lines = [j for (j, g) in enumerate(gens) if g.line]
                 z = certify_false(cols, lines, t, r, nvars, D)
                 # the exact projection costs O(k^3) rational operations for k
-                # passive columns (10s at k = 252), which still beats the
-                # simplex fallback on every problem seen so far
+                # passive columns, which is where the seconds go when a
+                # statement at eight variables cannot be proven. The simplex
+                # is sometimes quicker on those, but only sometimes, and it
+                # is the provable case that it cannot do at all.
                 z === nothing && (z = certify_false_exact(cols, t, passive, D))
                 z === nothing || return false, z
             end
