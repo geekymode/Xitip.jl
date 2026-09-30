@@ -41,6 +41,7 @@ export prove, explain, print_proof, latex, latex_string, count_variables,
        proof_tree, chain_rule_tree, constraint_graph, entropy_table,
        entropic_samples, entropic_distribution, entropy_vector, evaluate,
        sufficient_conditions, Conditions, SufficientCondition,
+       lean,
        imeasure, shared_slice, shared_cone_vertices, shared_cone_facets,
        distribution_families,
        shared_coefficients, plot_imeasure,
@@ -75,6 +76,7 @@ include("conditions.jl")
 include("trees.jl")
 include("geometry.jl")
 include("latex.jl")
+include("lean.jl")
 include("cli.jl")
 
 # Run a small workload while the package is precompiled, so that the first

@@ -19,6 +19,7 @@ makedocs(;
         "Proofs and counterexamples" => "proofs.md",
         "Examples" => "examples.md",
         "Illustrations" => "illustrations.md",
+        "Formal proof in Lean" => "lean.md",
         "Command line" => "cli.md",
         "How it works" => "internals.md",
         "API reference" => "api.md",

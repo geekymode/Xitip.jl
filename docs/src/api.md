@@ -34,6 +34,7 @@ Certificate
 print_proof
 latex
 latex_string
+lean
 ```
 
 ## Decompositions and illustrations

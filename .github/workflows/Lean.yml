@@ -1,0 +1,44 @@
+name: Lean
+
+# The generated proofs are only worth something if Lean accepts them, so
+# compile them. Mathlib's cache is large, so this runs only when the export
+# or the harness changes.
+on:
+  push:
+    branches: [main]
+    paths: ['src/lean.jl', 'src/api.jl', 'lean/**', '.github/workflows/Lean.yml']
+  pull_request:
+    paths: ['src/lean.jl', 'src/api.jl', 'lean/**', '.github/workflows/Lean.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+
+      - name: Install Lean
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o elan-init.sh
+          sh elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      # any project with Mathlib will do; the generated files import Mathlib
+      # and nothing else
+      - name: Get a Mathlib project
+        run: |
+          git clone --depth 1 https://github.com/leanprover-community/mathlib4.git
+          cd mathlib4 && lake exe cache get
+
+      - name: Compile the generated proofs
+        run: julia --project=. lean/verify.jl mathlib4

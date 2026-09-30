@@ -33,6 +33,7 @@ struct ProofStep
     named::String           # the quantity under a name, if it has one
     latex_named::String     # the same, as LaTeX
     justification::String   # why it is non-negative: ">= 0" or "= 0"
+    quantity::Dict{Int,Coef} # the same, by subset bitmask (0 = constant)
 end
 
 """
@@ -53,6 +54,7 @@ struct Proof
     steps::Vector{ProofStep}
     latex_expression::String            # the expression, as LaTeX
     latex_terms::Vector{String}
+    coefficients::Dict{Int,Coef}        # the expression, by subset bitmask
 end
 
 """
@@ -352,12 +354,14 @@ function make_proof(y, gens, r::LinRel, names, sources)
                                latex(quantity, names),
                                something(signed_name(quantity, names), ""),
                                something(signed_name(quantity, names; tex=true), ""),
-                               g.equality ? "= 0" : ">= 0"))
+                               g.equality ? "= 0" : ">= 0",
+                               quantity))
     end
     return Proof(format(r, names),
                  something(name_quantity(r.coefs, names), ""),
                  terms, y[end], steps, latex(r.coefs, names),
-                 [latex(gens[j], names, sources) for j in used])
+                 [latex(gens[j], names, sources) for j in used],
+                 Dict{Int,Coef}(k => v for (k, v) in r.coefs if !iszero(v)))
 end
 
 # Farkas certificate z = (u, τ) -> Counterexample. The entropies are h = -u,
